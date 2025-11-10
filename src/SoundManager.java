@@ -43,7 +43,7 @@ public class SoundManager {
             try {
                 CachedAudio ca = loadPcm(resourcePath);
                 if (ca == null) {
-                    System.err.println("⚠️ 找不到音频资源: " + resourcePath);
+                    System.err.println("️ 找不到音频资源: " + resourcePath);
                     return;
                 }
 

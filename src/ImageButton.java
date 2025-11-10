@@ -23,26 +23,26 @@ public class ImageButton extends JButton {
     private String typeKey;  // 用于三消判定的“类型”
 
     public ImageButton(String resourcePath, int width, int height) {
-        // ===== 1️⃣ 保存图片类型（用路径名作为标识即可）=====
+        // ===== 保存图片类型（用路径名作为标识即可）=====
         this.typeKey = resourcePath;   // 用于 Match3 判定的类型识别
 
-        // ===== 2️⃣ 加载图像资源 =====
+        // ===== 加载图像资源 =====
         URL url = getClass().getResource(resourcePath);
         if (url == null) {
-            System.err.println("⚠️ 找不到图片：" + resourcePath);
+            System.err.println("找不到图片：" + resourcePath);
         } else {
             ImageIcon icon = new ImageIcon(url);
             Image scaled = icon.getImage().getScaledInstance(width, height, Image.SCALE_SMOOTH);
             setIcon(new ImageIcon(scaled));
         }
 
-        // ===== 3️⃣ 去掉默认样式 =====
+        // ===== ️ 去掉默认样式 =====
         setBorderPainted(false);
         setContentAreaFilled(false);
         setFocusPainted(false);
         setOpaque(false);
 
-        // ===== 4️⃣ 手动布局时的尺寸 =====
+        // ===== 手动布局时的尺寸 =====
         setSize(width, height);
     }
 
@@ -155,7 +155,7 @@ public class ImageButton extends JButton {
                 animating = false;
                 other.animating = false;
 
-                // ✅ 动画完成后执行回调（例如触发 Match3 消除）
+                // 动画完成后执行回调（例如触发 Match3 消除）
                 if (onComplete != null) onComplete.run();
             }
         });
@@ -250,4 +250,46 @@ public class ImageButton extends JButton {
 
     public boolean isAnimating() { return animating; }
     public void setAnimating(boolean a) { this.animating = a; }
+
+    // 方块下落方法
+    // 1) 保留原签名，向后兼容
+    public void fallToRow(int targetRow, int durationMs) {
+        fallToRow(targetRow, durationMs, null);
+    }
+
+    // 2) 新增：带回调（动画结束时调用 onDone.run()）
+    public void fallToRow(int targetRow, int durationMs, Runnable onDone) {
+        int targetY = originY + targetRow * (cellH + vgap);
+        int startY = getY();
+        int distance = targetY - startY;
+
+        if (distance <= 0) {
+            setLocation(getX(), targetY);
+            if (onDone != null) onDone.run();
+            return;
+        }
+
+        int steps = 30; // 帧数
+        int delay = Math.max(1, durationMs / steps);
+        double delta = distance / (double) steps;
+
+        javax.swing.Timer t = new javax.swing.Timer(delay, null);
+        final int[] step = {0};
+        t.addActionListener(e -> {
+            step[0]++;
+            int newY = (int) Math.round(startY + delta * step[0]);
+            setLocation(getX(), newY);
+
+            if (step[0] >= steps) {
+                ((javax.swing.Timer) e.getSource()).stop();
+                setLocation(getX(), targetY);   // 精确落位
+                if (onDone != null) onDone.run();
+            }
+        });
+        t.start();
+    }
+
+    public int pixelYForRow(int row) {
+        return originY + row * (cellH + vgap);
+    }
 }

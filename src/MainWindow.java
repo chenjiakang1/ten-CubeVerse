@@ -70,7 +70,7 @@ public class MainWindow {
                 // 管理器
                 SwapManager manager = new SwapManager(300);
 
-                // ✅ 自动居中创建按钮
+                // 自动居中创建按钮
                 createButtons(bgPanel, manager, TOTAL_COUNT);
                 // 新增：添加返回主菜单按钮 + ESC 快捷键
                 addBackToMenu(bgPanel, frame);
@@ -105,7 +105,7 @@ public class MainWindow {
             int y = ORIGIN_Y + row * (CELL_H + VGAP);
 
             String path = imagePaths[i % imagePaths.length];
-            ImageButton btn = createImageButton(path, x, y, manager);
+            ImageButton btn = createImageButton(path, x, y, ORIGIN_X, ORIGIN_Y, manager);
             buttons.add(btn);
             bgPanel.add(btn);
         }
@@ -120,15 +120,21 @@ public class MainWindow {
         }
     }
 
-    private ImageButton createImageButton(String path, int x, int y, SwapManager manager) {
+    private ImageButton createImageButton(String path, int x, int y,
+                                          int originX, int originY,
+                                          SwapManager manager) {
         ImageButton btn = new ImageButton(path, CELL_W, CELL_H);
         btn.setLocation(x, y);
-        btn.configureGrid(CELL_W, CELL_H, x, y, COLS, HGAP, VGAP);
+
+        // 使用统一的网格原点，而不是当前按钮坐标 (x, y)
+        btn.configureGrid(CELL_W, CELL_H, originX, originY, COLS, HGAP, VGAP);
+
         btn.snapToGrid();
         removeAllActionListeners(btn);
         btn.addActionListener(manager);
         return btn;
     }
+
 
     private void addBackToMenu(JPanel parent, JFrame frame) {
         JButton back = new JButton("Back to Menu");
