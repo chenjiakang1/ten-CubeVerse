@@ -137,14 +137,36 @@ public class MainWindow {
 
 
     private void addBackToMenu(JPanel parent, JFrame frame) {
+        // 使用 button.png 作为按钮背景
         JButton back = new JButton("Back to Menu");
+        back.setHorizontalTextPosition(SwingConstants.CENTER);
+        back.setVerticalTextPosition(SwingConstants.CENTER);
+        back.setFont(new Font("Arial", Font.BOLD, 14));
+        back.setForeground(Color.WHITE);
+
+        // 加载背景图片
+        java.net.URL imgURL = getClass().getResource("/button.png");
+        if (imgURL != null) {
+            ImageIcon icon = new ImageIcon(imgURL);
+            Image scaled = icon.getImage().getScaledInstance(140, 40, Image.SCALE_SMOOTH);
+            back.setIcon(new ImageIcon(scaled));
+        } else {
+            System.err.println("⚠️ 找不到 /button.png");
+        }
+
+        // 去掉 Swing 默认边框和背景
+        back.setBorderPainted(false);
+        back.setContentAreaFilled(false);
         back.setFocusPainted(false);
-        back.setBounds(20, 20, 140, 32); // 放在左上角，你可改位置/尺寸
+        back.setOpaque(false);
+
+        // 按钮位置和事件
+        back.setBounds(20, 20, 140, 40);
         back.addActionListener(e -> {
             frame.dispose();
-            // 返回主菜单
             SwingUtilities.invokeLater(() -> new MainMenu().setVisible(true));
         });
+
         parent.add(back);
 
         // 绑定 ESC 快捷键：按下即返回主菜单
@@ -158,4 +180,31 @@ public class MainWindow {
             }
         });
     }
+
+
+    /** 创建带背景图片和文字的按钮 */
+    private JButton createImageButton(String text) {
+        JButton btn = new JButton(text);
+        btn.setHorizontalTextPosition(SwingConstants.CENTER);
+        btn.setVerticalTextPosition(SwingConstants.CENTER);
+        btn.setFont(new Font("Arial", Font.BOLD, 18));
+        btn.setForeground(Color.WHITE);
+
+        java.net.URL imgURL = getClass().getResource("/button.png");
+        if (imgURL != null) {
+            ImageIcon icon = new ImageIcon(imgURL);
+            Image scaled = icon.getImage().getScaledInstance(240, 60, Image.SCALE_SMOOTH);
+            btn.setIcon(new ImageIcon(scaled));
+        }
+
+        btn.setBorderPainted(false);
+        btn.setContentAreaFilled(false);
+        btn.setFocusPainted(false);
+        btn.setOpaque(false);
+        btn.setPreferredSize(new Dimension(240, 60));
+        btn.setMaximumSize(new Dimension(240, 60));
+
+        return btn;
+    }
+
 }
