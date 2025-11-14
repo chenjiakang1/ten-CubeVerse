@@ -3,11 +3,11 @@ import java.awt.*;
 import java.awt.event.ActionListener;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Random; // ← 新增
 
 import java.awt.event.KeyEvent;
 import javax.swing.AbstractAction;
 import javax.swing.KeyStroke;
-
 
 public class MainWindow {
     // ===== 固定参数 =====
@@ -87,6 +87,7 @@ public class MainWindow {
         };
 
         List<ImageButton> buttons = new ArrayList<>();
+        Random random = new Random(); // 随机
 
         // ---- 水平居中 ----
         int totalWidth = COLS_PER_ROW * (CELL_W + HGAP) - HGAP;
@@ -97,14 +98,29 @@ public class MainWindow {
         int totalHeight = rows * (CELL_H + VGAP) - VGAP;
         int ORIGIN_Y = (WINDOW_HEIGHT - totalHeight) / 2;
 
+        // 用二维数组记录每个格子的“类型索引”（对应 imagePaths 下标）
+        int[][] gridTypes = new int[rows][COLS_PER_ROW];
+
         for (int i = 0; i < totalCount; i++) {
             int row = i / COLS_PER_ROW;
             int col = i % COLS_PER_ROW;
 
+            // —— 随机生成，并避免出现初始“三连” ——
+            int typeIndex;
+            do {
+                typeIndex = random.nextInt(imagePaths.length);
+            } while (
+                // 横向防三连：左边连续两个与当前一致则重抽
+                    (col >= 2 && gridTypes[row][col - 1] == typeIndex && gridTypes[row][col - 2] == typeIndex) ||
+                            // 纵向防三连：上边连续两个与当前一致则重抽
+                            (row >= 2 && gridTypes[row - 1][col] == typeIndex && gridTypes[row - 2][col] == typeIndex)
+            );
+            gridTypes[row][col] = typeIndex;
+
             int x = ORIGIN_X + col * (CELL_W + HGAP);
             int y = ORIGIN_Y + row * (CELL_H + VGAP);
 
-            String path = imagePaths[i % imagePaths.length];
+            String path = imagePaths[typeIndex];
             ImageButton btn = createImageButton(path, x, y, ORIGIN_X, ORIGIN_Y, manager);
             buttons.add(btn);
             bgPanel.add(btn);
@@ -134,7 +150,6 @@ public class MainWindow {
         btn.addActionListener(manager);
         return btn;
     }
-
 
     private void addBackToMenu(JPanel parent, JFrame frame) {
         // 使用 button.png 作为按钮背景
@@ -181,8 +196,7 @@ public class MainWindow {
         });
     }
 
-
-    /** 创建带背景图片和文字的按钮 */
+    /** 创建带背景图片和文字的按钮（用于菜单类按钮，不影响棋盘格） */
     private JButton createImageButton(String text) {
         JButton btn = new JButton(text);
         btn.setHorizontalTextPosition(SwingConstants.CENTER);
@@ -206,5 +220,4 @@ public class MainWindow {
 
         return btn;
     }
-
 }
