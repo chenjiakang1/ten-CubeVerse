@@ -1,9 +1,8 @@
 import javax.swing.*;
 import java.awt.*;
 import java.awt.event.ActionListener;
-import java.util.ArrayList;
+import java.util.*;
 import java.util.List;
-import java.util.Random; // ← 新增
 
 import java.awt.event.KeyEvent;
 import javax.swing.AbstractAction;
@@ -26,29 +25,15 @@ public class MainWindow {
     public MainWindow(int difficulty) {
         switch (difficulty) {
             case 1:
-                COLS = 5;
-                COLS_PER_ROW = 5;
-                TOTAL_COUNT = 25;
-                break;
+                COLS = 5; COLS_PER_ROW = 5; TOTAL_COUNT = 25; break;
             case 2:
-                COLS = 6;
-                COLS_PER_ROW = 6;
-                TOTAL_COUNT = 36;
-                break;
+                COLS = 6; COLS_PER_ROW = 6; TOTAL_COUNT = 36; break;
             case 3:
-                COLS = 7;
-                COLS_PER_ROW = 7;
-                TOTAL_COUNT = 49;
-                break;
+                COLS = 7; COLS_PER_ROW = 7; TOTAL_COUNT = 49; break;
             case 4:
-                COLS = 8;
-                COLS_PER_ROW = 8;
-                TOTAL_COUNT = 64;
-                break;
+                COLS = 8; COLS_PER_ROW = 8; TOTAL_COUNT = 64; break;
             default:
-                COLS = 5;
-                COLS_PER_ROW = 5;
-                TOTAL_COUNT = 25;
+                COLS = 5; COLS_PER_ROW = 5; TOTAL_COUNT = 25;
         }
     }
 
@@ -70,9 +55,10 @@ public class MainWindow {
                 // 管理器
                 SwapManager manager = new SwapManager(300);
 
-                // 自动居中创建按钮
+                // 自动居中创建按钮（随机 & 不含任何“可消连通块”）
                 createButtons(bgPanel, manager, TOTAL_COUNT);
-                // 新增：添加返回主菜单按钮 + ESC 快捷键
+
+                // 返回主菜单按钮 + ESC
                 addBackToMenu(bgPanel, frame);
 
                 frame.setVisible(true);
@@ -80,54 +66,90 @@ public class MainWindow {
         }
     }
 
+    /** 生成整盘：用 4 邻接连通块检测避免“初始即消” */
     private void createButtons(JPanel bgPanel, SwapManager manager, int totalCount) {
         String[] imagePaths = {
                 "/Block_001.png", "/Block_002.png", "/Block_003.png", "/Block_004.png", "/Block_005.png",
                 "/Block_006.png", "/Block_007.png", "/Block_008.png", "/Block_009.png", "/Block_010.png"
         };
+        Random random = new Random();
 
-        List<ImageButton> buttons = new ArrayList<>();
-        Random random = new Random(); // 随机
-
-        // ---- 水平居中 ----
-        int totalWidth = COLS_PER_ROW * (CELL_W + HGAP) - HGAP;
-        int ORIGIN_X = (WINDOW_WIDTH - totalWidth) / 2;
-
-        // ---- 垂直居中 ----
-        int rows = (int) Math.ceil((double) totalCount / COLS_PER_ROW);
+        // ---- 居中计算 ----
+        int totalWidth  = COLS_PER_ROW * (CELL_W + HGAP) - HGAP;
+        int ORIGIN_X    = (WINDOW_WIDTH  - totalWidth)  / 2;
+        int rows        = (int) Math.ceil((double) totalCount / COLS_PER_ROW);
         int totalHeight = rows * (CELL_H + VGAP) - VGAP;
-        int ORIGIN_Y = (WINDOW_HEIGHT - totalHeight) / 2;
+        int ORIGIN_Y    = (WINDOW_HEIGHT - totalHeight) / 2;
 
-        // 用二维数组记录每个格子的“类型索引”（对应 imagePaths 下标）
-        int[][] gridTypes = new int[rows][COLS_PER_ROW];
+        // 反复随机直到“没有任何可消连通块”
+        final int MAX_ATTEMPTS = 2000;
+        int[][] types = null;
+        for (int attempt = 0; attempt < MAX_ATTEMPTS; attempt++) {
+            types = randomFill(rows, COLS_PER_ROW, imagePaths.length, random);
+            if (!hasAnyMatchByFourAdj(types, rows, COLS_PER_ROW)) {
+                break; // 合格
+            }
+            if (attempt == MAX_ATTEMPTS - 1) {
+                System.err.println("⚠️ 初始盘面生成达到上限，仍存在可消块：将使用最后一次结果（可能会开局即消）。");
+            }
+        }
 
-        for (int i = 0; i < totalCount; i++) {
-            int row = i / COLS_PER_ROW;
-            int col = i % COLS_PER_ROW;
-
-            // —— 随机生成，并避免出现初始“三连” ——
-            int typeIndex;
-            do {
-                typeIndex = random.nextInt(imagePaths.length);
-            } while (
-                // 横向防三连：左边连续两个与当前一致则重抽
-                    (col >= 2 && gridTypes[row][col - 1] == typeIndex && gridTypes[row][col - 2] == typeIndex) ||
-                            // 纵向防三连：上边连续两个与当前一致则重抽
-                            (row >= 2 && gridTypes[row - 1][col] == typeIndex && gridTypes[row - 2][col] == typeIndex)
-            );
-            gridTypes[row][col] = typeIndex;
-
-            int x = ORIGIN_X + col * (CELL_W + HGAP);
-            int y = ORIGIN_Y + row * (CELL_H + VGAP);
-
-            String path = imagePaths[typeIndex];
-            ImageButton btn = createImageButton(path, x, y, ORIGIN_X, ORIGIN_Y, manager);
-            buttons.add(btn);
-            bgPanel.add(btn);
+        // 落盘
+        for (int r = 0; r < rows; r++) {
+            for (int c = 0; c < COLS_PER_ROW; c++) {
+                int x = ORIGIN_X + c * (CELL_W + HGAP);
+                int y = ORIGIN_Y + r * (CELL_H + VGAP);
+                String path = imagePaths[types[r][c]];
+                ImageButton btn = createImageButton(path, x, y, ORIGIN_X, ORIGIN_Y, manager);
+                bgPanel.add(btn);
+            }
         }
 
         bgPanel.revalidate();
         bgPanel.repaint();
+    }
+
+    /** 用随机数填充整盘（纯随机即可；可加点局部约束提升成功率） */
+    private int[][] randomFill(int rows, int cols, int kindCount, Random rnd) {
+        int[][] g = new int[rows][cols];
+        for (int r = 0; r < rows; r++) {
+            for (int c = 0; c < cols; c++) {
+                g[r][c] = rnd.nextInt(kindCount);
+            }
+        }
+        return g;
+    }
+
+    /** 是否存在“4 邻接连通块大小 ≥3”（与 Match3Manager 规则一致） */
+    private boolean hasAnyMatchByFourAdj(int[][] g, int rows, int cols) {
+        boolean[][] vis = new boolean[rows][cols];
+        int[][] DIRS = { {1,0}, {-1,0}, {0,1}, {0,-1} };
+
+        for (int r = 0; r < rows; r++) {
+            for (int c = 0; c < cols; c++) {
+                if (vis[r][c]) continue;
+                int t = g[r][c];
+                Queue<int[]> q = new ArrayDeque<>();
+                q.add(new int[]{r,c});
+                vis[r][c] = true;
+                int size = 0;
+
+                while (!q.isEmpty()) {
+                    int[] cur = q.poll();
+                    size++;
+                    for (int[] d : DIRS) {
+                        int nr = cur[0] + d[0], nc = cur[1] + d[1];
+                        if (nr < 0 || nr >= rows || nc < 0 || nc >= cols) continue;
+                        if (vis[nr][nc]) continue;
+                        if (g[nr][nc] != t) continue;
+                        vis[nr][nc] = true;
+                        q.add(new int[]{nr,nc});
+                    }
+                }
+                if (size >= 3) return true; // 发现可消块
+            }
+        }
+        return false;
     }
 
     private void removeAllActionListeners(AbstractButton b) {
@@ -141,10 +163,7 @@ public class MainWindow {
                                           SwapManager manager) {
         ImageButton btn = new ImageButton(path, CELL_W, CELL_H);
         btn.setLocation(x, y);
-
-        // 使用统一的网格原点，而不是当前按钮坐标 (x, y)
         btn.configureGrid(CELL_W, CELL_H, originX, originY, COLS, HGAP, VGAP);
-
         btn.snapToGrid();
         removeAllActionListeners(btn);
         btn.addActionListener(manager);
@@ -152,14 +171,12 @@ public class MainWindow {
     }
 
     private void addBackToMenu(JPanel parent, JFrame frame) {
-        // 使用 button.png 作为按钮背景
         JButton back = new JButton("Back to Menu");
         back.setHorizontalTextPosition(SwingConstants.CENTER);
         back.setVerticalTextPosition(SwingConstants.CENTER);
         back.setFont(new Font("Arial", Font.BOLD, 14));
         back.setForeground(Color.WHITE);
 
-        // 加载背景图片
         java.net.URL imgURL = getClass().getResource("/button.png");
         if (imgURL != null) {
             ImageIcon icon = new ImageIcon(imgURL);
@@ -169,13 +186,11 @@ public class MainWindow {
             System.err.println("⚠️ 找不到 /button.png");
         }
 
-        // 去掉 Swing 默认边框和背景
         back.setBorderPainted(false);
         back.setContentAreaFilled(false);
         back.setFocusPainted(false);
         back.setOpaque(false);
 
-        // 按钮位置和事件
         back.setBounds(20, 20, 140, 40);
         back.addActionListener(e -> {
             frame.dispose();
@@ -184,7 +199,6 @@ public class MainWindow {
 
         parent.add(back);
 
-        // 绑定 ESC 快捷键：按下即返回主菜单
         JRootPane root = frame.getRootPane();
         root.getInputMap(JComponent.WHEN_IN_FOCUSED_WINDOW)
                 .put(KeyStroke.getKeyStroke(KeyEvent.VK_ESCAPE, 0), "goBack");
@@ -196,7 +210,7 @@ public class MainWindow {
         });
     }
 
-    /** 创建带背景图片和文字的按钮（用于菜单类按钮，不影响棋盘格） */
+    /** 菜单按钮（独立于棋盘） */
     private JButton createImageButton(String text) {
         JButton btn = new JButton(text);
         btn.setHorizontalTextPosition(SwingConstants.CENTER);
