@@ -22,6 +22,9 @@ public class MainWindow {
     private int COLS_PER_ROW;   // 每行数量
     private int TOTAL_COUNT;    // 按钮总数
 
+    private int ORIGIN_X;
+    private int ORIGIN_Y;
+
     public MainWindow(int difficulty) {
         switch (difficulty) {
             case 1:
@@ -53,7 +56,7 @@ public class MainWindow {
                 frame.setContentPane(bgPanel);
 
                 // 管理器
-                SwapManager manager = new SwapManager(300);
+                SwapManager manager = new SwapManager(this, 300);
 
                 // 自动居中创建按钮（随机 & 不含任何“可消连通块”）
                 createButtons(bgPanel, manager, TOTAL_COUNT);
@@ -76,10 +79,10 @@ public class MainWindow {
 
         // ---- 居中计算 ----
         int totalWidth  = COLS_PER_ROW * (CELL_W + HGAP) - HGAP;
-        int ORIGIN_X    = (WINDOW_WIDTH  - totalWidth)  / 2;
+        this.ORIGIN_X = (WINDOW_WIDTH  - totalWidth)  / 2;
         int rows        = (int) Math.ceil((double) totalCount / COLS_PER_ROW);
         int totalHeight = rows * (CELL_H + VGAP) - VGAP;
-        int ORIGIN_Y    = (WINDOW_HEIGHT - totalHeight) / 2;
+        this.ORIGIN_Y = (WINDOW_HEIGHT - totalHeight) / 2;
 
         // 反复随机直到“没有任何可消连通块”
         final int MAX_ATTEMPTS = 2000;
@@ -234,4 +237,12 @@ public class MainWindow {
 
         return btn;
     }
+
+    public int getCellW() { return CELL_W; }
+    public int getCellH() { return CELL_H; }
+    public int getHGap() { return HGAP; }
+    public int getVGap() { return VGAP; }
+    public int getCols() { return COLS; }
+    public int getOriginX() { return ORIGIN_X; }
+    public int getOriginY() { return ORIGIN_Y; }
 }

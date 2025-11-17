@@ -1,28 +1,60 @@
 import javax.swing.JPanel;
 import java.awt.Component;
 import java.awt.Point;
+import java.awt.event.ActionListener;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
 
-/** 4 邻接三消：同类型连通块大小 >= 3 即消除；消除后重力下落(0.5s)，动画结束自动连消。 */
+/** 4 邻接三消：同类型连通块大小 >= 3 即消除；消除后重力下落 -> 补新块 -> 连锁 */
 public class Match3Manager {
 
-    /** 入口：扫描 parent 中全部可见的 ImageButton，执行三消->下落->连锁 */
+    /** 入口：扫描 parent 中全部可见 ImageButton，执行三消->下落->连锁 */
+    /** 兼容旧调用版本（自动读取 grid 参数） */
     public static void removeMatches(JPanel parent) {
-        // 1) 收集所有按钮并按 (row, col) 建表
+        // 找到一个 ImageButton 并读取它的 grid 参数
+        for (Component c : parent.getComponents()) {
+            if (c instanceof ImageButton) {
+                ImageButton b = (ImageButton) c;
+
+                // 读取配置
+                int cellW   = b.getCellW();
+                int cellH   = b.getCellH();
+                int originX = b.getOriginX();
+                int originY = b.getOriginY();
+                int cols    = b.getCols();
+                int hgap    = b.getHgap();
+                int vgap    = b.getVgap();
+
+                // 调用真正的主版本
+                removeMatches(parent, cellW, cellH, originX, originY, cols, hgap, vgap);
+                return;
+            }
+        }
+
+        // ❗如果没有按钮（空面板），那就调用默认值
+        removeMatches(parent, 30, 30, 0, 0, 5, 5, 5);
+    }
+
+    public static void removeMatches(
+            JPanel parent,
+            int cellW, int cellH,
+            int originX, int originY,
+            int cols,
+            int hgap, int vgap
+    ) {
         Map<Point, ImageButton> grid = buildGrid(parent);
         if (grid.isEmpty()) return;
 
-        // 2) 基于 4 邻接的连通分量搜索
         Set<Point> visited = new HashSet<>();
         Set<Point> toRemove = new HashSet<>();
-        int[][] DIRS = { {1,0}, {-1,0}, {0,1}, {0,-1} };
+        int[][] DIRS = {{1,0}, {-1,0}, {0,1}, {0,-1}};
 
-        for (Map.Entry<Point, ImageButton> entry : grid.entrySet()) {
-            Point start = entry.getKey();
+        // BFS 搜索连通块
+        for (Map.Entry<Point, ImageButton> e : grid.entrySet()) {
+            Point start = e.getKey();
             if (visited.contains(start)) continue;
 
-            String type = entry.getValue().getType();
+            String type = e.getValue().getType();
             Queue<Point> q = new ArrayDeque<>();
             List<Point> comp = new ArrayList<>();
             visited.add(start);
@@ -31,39 +63,38 @@ public class Match3Manager {
             while (!q.isEmpty()) {
                 Point p = q.poll();
                 comp.add(p);
+
                 for (int[] d : DIRS) {
                     Point np = new Point(p.x + d[0], p.y + d[1]);
-                    if (visited.contains(np)) continue;
                     ImageButton nb = grid.get(np);
-                    if (nb != null && Objects.equals(nb.getType(), type)) {
+                    if (nb != null && !visited.contains(np) && Objects.equals(nb.getType(), type)) {
                         visited.add(np);
                         q.add(np);
                     }
                 }
             }
-            if (comp.size() >= 3) {
-                toRemove.addAll(comp);
-            }
+
+            if (comp.size() >= 3) toRemove.addAll(comp);
         }
 
-        // 3) 执行移除 -> 重力 ->（可选）连锁
-        if (!toRemove.isEmpty()) {
-            SoundManager.playDestroy(); // 销毁音效（可选）
-            for (Point p : toRemove) {
-                ImageButton b = grid.get(p);
-                if (b != null) parent.remove(b);
-                grid.remove(p); // 同步从表里移除
-            }
-            parent.revalidate();
-            parent.repaint();
+        if (toRemove.isEmpty()) return; // 已无消除
 
-            // 4) 重力：让每列压缩并播放 0.5s 下落动画；动画全部结束后再做一次 removeMatches（连消）
-            applyGravityThenChain(parent, grid, 500);
+        SoundManager.playDestroy();
+
+        // 删除方块
+        for (Point p : toRemove) {
+            ImageButton b = grid.get(p);
+            if (b != null) parent.remove(b);
+            grid.remove(p);
         }
-        // 如果 toRemove 为空：这一轮没有可消除的，直接返回（终止连锁）
+        parent.revalidate();
+        parent.repaint();
+
+        // 下落 + 补新块 + 连锁
+        applyGravityThenChain(parent, grid, 500, cellW, cellH, originX, originY, cols, hgap, vgap);
     }
 
-    /** 按 (row,col) 建表 */
+    /** (row,col)->ImageButton */
     private static Map<Point, ImageButton> buildGrid(JPanel parent) {
         Map<Point, ImageButton> grid = new HashMap<>();
         for (Component c : parent.getComponents()) {
@@ -75,11 +106,16 @@ public class Match3Manager {
         return grid;
     }
 
-    /** 压缩每一列；触发 0.5s 动画；全部动画完成后自动连消 */
-    private static void applyGravityThenChain(JPanel parent, Map<Point, ImageButton> grid, int durationMs) {
+    /** 下落->补新块->连锁 */
+    private static void applyGravityThenChain(
+            JPanel parent, Map<Point, ImageButton> grid, int durationMs,
+            int cellW, int cellH,
+            int originX, int originY,
+            int cols,
+            int hgap, int vgap
+    ) {
         if (grid.isEmpty()) return;
 
-        // 计算列范围、最大行
         int minCol = Integer.MAX_VALUE, maxCol = Integer.MIN_VALUE, maxRow = Integer.MIN_VALUE;
         for (Point p : grid.keySet()) {
             minCol = Math.min(minCol, p.y);
@@ -88,42 +124,81 @@ public class Match3Manager {
         }
 
         AtomicInteger running = new AtomicInteger(0);
-        boolean anyFell = false;
 
-        // 对每列进行“自底向上”的压缩
+        /* =====================  第一阶段：重力下落  ===================== */
         for (int col = minCol; col <= maxCol; col++) {
-            int writeRow = maxRow; // 从底部往上“写入”
+            int writeRow = maxRow;
             for (int row = maxRow; row >= 0; row--) {
-                ImageButton b = grid.get(new Point(row, col));
+                Point p = new Point(row, col);
+                ImageButton b = grid.get(p);
                 if (b == null) continue;
 
                 if (row != writeRow) {
-                    anyFell = true;
-                    SoundManager.playMove(); // 下落音效（可选）
-                    running.incrementAndGet();
-
                     int targetRow = writeRow;
-                    // 触发动画：结束时减少计数；所有动画结束后触发下一轮消除（连锁）
+                    running.incrementAndGet();
+                    SoundManager.playMove();
+
                     b.fallToRow(targetRow, durationMs, () -> {
                         if (running.decrementAndGet() == 0) {
-                            // 所有下落动画结束，触发下一轮连消
-                            removeMatches(parent);
+                            removeMatches(parent, cellW, cellH, originX, originY, cols, hgap, vgap);
                         }
                     });
 
-                    // 更新哈希表坐标
-                    grid.remove(new Point(row, col));
+                    grid.remove(p);
                     grid.put(new Point(targetRow, col), b);
                 }
                 writeRow--;
             }
         }
 
-        if (anyFell) {
-            parent.revalidate();
-            parent.repaint();
-        } else {
-            // 没有下落，说明这一轮结束（不会连锁）
+        /* =====================  第二阶段：补充新方块  ===================== */
+        for (int col = minCol; col <= maxCol; col++) {
+            int count = 0;
+            for (Point p : grid.keySet()) if (p.y == col) count++;
+
+            int need = (maxRow + 1) - count;
+            if (need <= 0) continue;
+
+            for (int i = 0; i < need; i++) {
+                int spawnRow  = -1 - i;
+                int targetRow = need - 1 - i;
+
+                ImageButton newB = BlockFactory.createRandomBlock(
+                        cellW, cellH, originX, originY, cols, hgap, vgap,
+                        findSwapManager(parent)
+                );
+
+                newB.moveToGridCell(spawnRow, col);
+                parent.add(newB);
+
+                grid.put(new Point(targetRow, col), newB);
+
+                running.incrementAndGet();
+
+                newB.fallToRow(targetRow, durationMs, () -> {
+                    if (running.decrementAndGet() == 0) {
+                        removeMatches(parent, cellW, cellH, originX, originY, cols, hgap, vgap);
+                    }
+                });
+            }
         }
+
+        parent.revalidate();
+        parent.repaint();
     }
+
+    private static SwapManager findSwapManager(JPanel parent) {
+        for (Component c : parent.getComponents()) {
+            if (c instanceof ImageButton) {
+                for (ActionListener al : ((ImageButton)c).getActionListeners()) {
+                    if (al instanceof SwapManager) {
+                        return (SwapManager) al;
+                    }
+                }
+            }
+        }
+        return null; // 正常不会发生
+    }
+
+
 }

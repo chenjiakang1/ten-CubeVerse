@@ -5,10 +5,12 @@ import java.awt.event.ActionListener;
 
 public class SwapManager implements ActionListener {
     private final int durationMs;     // 动画时长
+    private final MainWindow window;  // 🔥 引入 MainWindow 用于获取布局参数
     private ImageButton selected = null;
     private boolean swapping = false; // 动画期间节流
 
-    public SwapManager(int durationMs) {
+    public SwapManager(MainWindow window, int durationMs) {
+        this.window = window;                   // ★ 保存引用
         this.durationMs = Math.max(0, durationMs);
     }
 
@@ -43,43 +45,49 @@ public class SwapManager implements ActionListener {
             return;
         }
 
-        // ===== 新增：显式检查是否相邻（曼哈顿距离为 1）=====
+        // ===== 显式检查是否相邻 =====
         Point rcA = new Point(a.currentRow(), a.currentCol());
         Point rcB = new Point(b.currentRow(), b.currentCol());
         int dist = Math.abs(rcA.x - rcB.x) + Math.abs(rcA.y - rcB.y);
-
         if (dist != 1) {
-            // 不相邻：取消原高亮并清空选择
             a.setReady(false);
             selected = null;
-            Toolkit.getDefaultToolkit().beep(); // 可选提示音
+            Toolkit.getDefaultToolkit().beep();
             return;
         }
-        // ==============================================
+        // ==========================
 
         swapping = true;
 
-        // 动画完成后的回调：做三消判定与解锁（放到 invokeLater 里更稳）
+        // 动画完成后的回调：做三消判定与解锁
         Runnable onComplete = () -> {
-            Container parent = a.getParent();              // 两个按钮在同一父容器
+            Container parent = a.getParent();
             if (parent instanceof JPanel) {
                 SwingUtilities.invokeLater(() -> {
-                    Match3Manager.removeMatches((JPanel) parent);  // 交换完成 → 判定消除
+                    Match3Manager.removeMatches(
+                            (JPanel) parent,
+                            window.getCellW(),   // ★ 来自 getter
+                            window.getCellH(),
+                            window.getOriginX(),
+                            window.getOriginY(),
+                            window.getCols(),
+                            window.getHGap(),
+                            window.getVGap()
+                    );
                 });
             }
             swapping = false;
         };
 
-        // 发起交换（相邻检查、动画与吸附在 ImageButton 内部完成）
+        // 发起交换
         a.swapWith(b, durationMs, onComplete);
 
-        // 真的开始交换：播放移动音效，清理高亮与选择
+        // 开始交换：播放音效/清理状态
         if (a.isAnimating() || b.isAnimating()) {
             SoundManager.playMove();
             a.setReady(false);
             selected = null;
         } else {
-            // 理论上相邻时都会进入动画；若未进入，解除节流
             swapping = false;
         }
     }

@@ -221,7 +221,7 @@ public class ImageButton extends JButton {
     }
 
     /** 给定 (row, col) 返回该格左上角像素位置；考虑起点与间距。 */
-    private Point locationOfCell(int row, int col) {
+    public Point locationOfCell(int row, int col) {
         int x = originX + col * (cellW + hgap);
         int y = originY + row * (cellH + vgap);
         return new Point(x, y);
@@ -292,4 +292,18 @@ public class ImageButton extends JButton {
     public int pixelYForRow(int row) {
         return originY + row * (cellH + vgap);
     }
+
+    public void moveToGridCell(int row, int col) {
+        if (!gridEnabled) return;
+        Point pt = locationOfCell(row, col);
+        setLocation(pt);
+    }
+
+    public int getCellW()  { return cellW; }
+    public int getCellH()  { return cellH; }
+    public int getOriginX(){ return originX; }
+    public int getOriginY(){ return originY; }
+    public int getCols()   { return cols; }
+    public int getHgap()   { return hgap; }
+    public int getVgap()   { return vgap; }
 }
