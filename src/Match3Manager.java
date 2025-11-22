@@ -7,6 +7,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 /** 4 邻接三消：同类型连通块大小 >= 3 即消除；消除后重力下落 -> 补新块 -> 连锁 */
 public class Match3Manager {
+    private static int comboStep = 0;   // 当前连锁层数：1,2,3...
 
     /** 入口：扫描 parent 中全部可见 ImageButton，执行三消->下落->连锁 */
     /** 兼容旧调用版本（自动读取 grid 参数） */
@@ -43,10 +44,13 @@ public class Match3Manager {
             int hgap, int vgap
     ) {
         Map<Point, ImageButton> grid = buildGrid(parent);
-        if (grid.isEmpty()) return;
-
+        if (grid.isEmpty()) {
+            comboStep = 0; // 棋盘空了，连锁结束
+            return;
+        }
         Set<Point> visited = new HashSet<>();
         Set<Point> toRemove = new HashSet<>();
+        java.util.List<Integer> groupSizes = new java.util.ArrayList<>(); // ⭐ 记录每个连通块大小
         int[][] DIRS = {{1,0}, {-1,0}, {0,1}, {0,-1}};
 
         // BFS 搜索连通块
@@ -56,7 +60,7 @@ public class Match3Manager {
 
             String type = e.getValue().getType();
             Queue<Point> q = new ArrayDeque<>();
-            List<Point> comp = new ArrayList<>();
+            java.util.List<Point> comp = new java.util.ArrayList<>();
             visited.add(start);
             q.add(start);
 
@@ -67,18 +71,29 @@ public class Match3Manager {
                 for (int[] d : DIRS) {
                     Point np = new Point(p.x + d[0], p.y + d[1]);
                     ImageButton nb = grid.get(np);
-                    if (nb != null && !visited.contains(np) && Objects.equals(nb.getType(), type)) {
+                    if (nb != null && !visited.contains(np) && java.util.Objects.equals(nb.getType(), type)) {
                         visited.add(np);
                         q.add(np);
                     }
                 }
             }
 
-            if (comp.size() >= 3) toRemove.addAll(comp);
+            if (comp.size() >= 3) {
+                toRemove.addAll(comp);
+                groupSizes.add(comp.size()); // ⭐ 每个连通块的大小
+            }
         }
 
-        if (toRemove.isEmpty()) return; // 已无消除
-
+        // ▶ 没有可消，连锁结束
+        if (toRemove.isEmpty()) {
+            comboStep = 0;
+            return;
+        }
+        // ▶ 有消除，本轮属于连锁第 N 次
+        comboStep++;
+        // ⭐ 计算本次消除的全部奖励分数（基础分 + size bonus + combo bonus）
+        int gained = ScoreManager.computeComboScore(groupSizes, comboStep);
+        ScoreManager.addScore(gained);
         SoundManager.playDestroy();
 
         // 删除方块

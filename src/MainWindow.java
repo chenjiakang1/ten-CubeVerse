@@ -9,6 +9,10 @@ import javax.swing.AbstractAction;
 import javax.swing.KeyStroke;
 
 public class MainWindow {
+    // ========== 记分 & 通关字段 ==========
+    private JLabel scoreLabel;          // 显示右上角分数
+    private int goalScore;          // ⭐ 该局目标分数
+    private boolean levelCleared;   // ⭐ 防止重复触发通关
     // ===== 固定参数 =====
     private static final int WINDOW_WIDTH = 400;
     private static final int WINDOW_HEIGHT = 700;
@@ -26,17 +30,29 @@ public class MainWindow {
     private int ORIGIN_Y;
 
     public MainWindow(int difficulty) {
+        // ⭐ 新建 MainWindow = 开始一局 ⇒ 分数清零
+        ScoreManager.reset();
+
         switch (difficulty) {
             case 1:
-                COLS = 5; COLS_PER_ROW = 5; TOTAL_COUNT = 25; break;
+                COLS = 5; COLS_PER_ROW = 5; TOTAL_COUNT = 25;
+                goalScore = 100;   // ⭐ 简单模式通关分
+                break;
             case 2:
-                COLS = 6; COLS_PER_ROW = 6; TOTAL_COUNT = 36; break;
+                COLS = 6; COLS_PER_ROW = 6; TOTAL_COUNT = 36;
+                goalScore = 200;
+                break;
             case 3:
-                COLS = 7; COLS_PER_ROW = 7; TOTAL_COUNT = 49; break;
+                COLS = 7; COLS_PER_ROW = 7; TOTAL_COUNT = 49;
+                goalScore = 300;
+                break;
             case 4:
-                COLS = 8; COLS_PER_ROW = 8; TOTAL_COUNT = 64; break;
+                COLS = 8; COLS_PER_ROW = 8; TOTAL_COUNT = 64;
+                goalScore = 400;
+                break;
             default:
                 COLS = 5; COLS_PER_ROW = 5; TOTAL_COUNT = 25;
+                goalScore = 100;
         }
     }
 
@@ -57,6 +73,32 @@ public class MainWindow {
 
                 // 管理器
                 SwapManager manager = new SwapManager(this, 300);
+                // ⭐ 在背景面板上添加右上角分数显示
+                scoreLabel = new JLabel("Score: 0");
+                scoreLabel.setForeground(Color.WHITE);
+                scoreLabel.setFont(new Font("Arial", Font.BOLD, 18));
+                scoreLabel.setBounds(WINDOW_WIDTH - 150, 20, 130, 30);
+                bgPanel.add(scoreLabel);
+                // ⭐ 绑定到 ScoreManager，让它自己刷新显示
+                ScoreManager.bindLabel(scoreLabel);
+
+                // ⭐ 设置本局的通关目标
+                ScoreManager.setGoal(goalScore, finalScore -> {
+                    if (levelCleared) return;
+                    levelCleared = true;
+
+                    // 弹出通关提示框
+                    JOptionPane.showMessageDialog(
+                            frame,
+                            "Stage Cleared!\nScore: " + finalScore + " / " + goalScore,
+                            "Level Complete",
+                            JOptionPane.INFORMATION_MESSAGE
+                    );
+
+                    // 回到主菜单（你也可以改成进下一关）
+                    frame.dispose();
+                    SwingUtilities.invokeLater(() -> new MainMenu().setVisible(true));
+                });
 
                 // 自动居中创建按钮（随机 & 不含任何“可消连通块”）
                 createButtons(bgPanel, manager, TOTAL_COUNT);

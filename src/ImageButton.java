@@ -252,41 +252,44 @@ public class ImageButton extends JButton {
     public void setAnimating(boolean a) { this.animating = a; }
 
     // 方块下落方法
-    // 1) 保留原签名，向后兼容
+    // 1) 保留原API
     public void fallToRow(int targetRow, int durationMs) {
         fallToRow(targetRow, durationMs, null);
     }
 
-    // 2) 新增：带回调（动画结束时调用 onDone.run()）
+    // 2) 使用全局 Animator，无限平滑不卡顿
     public void fallToRow(int targetRow, int durationMs, Runnable onDone) {
         int targetY = originY + targetRow * (cellH + vgap);
         int startY = getY();
         int distance = targetY - startY;
 
+        // 不需要移动
         if (distance <= 0) {
             setLocation(getX(), targetY);
             if (onDone != null) onDone.run();
             return;
         }
 
-        int steps = 30; // 帧数
-        int delay = Math.max(1, durationMs / steps);
+        int steps = 30; // 动画帧数
         double delta = distance / (double) steps;
-
-        javax.swing.Timer t = new javax.swing.Timer(delay, null);
         final int[] step = {0};
-        t.addActionListener(e -> {
-            step[0]++;
-            int newY = (int) Math.round(startY + delta * step[0]);
-            setLocation(getX(), newY);
 
-            if (step[0] >= steps) {
-                ((javax.swing.Timer) e.getSource()).stop();
-                setLocation(getX(), targetY);   // 精确落位
-                if (onDone != null) onDone.run();
+        Runnable task = new Runnable() {
+            @Override
+            public void run() {
+                step[0]++;
+                int newY = (int) Math.round(startY + delta * step[0]);
+                setLocation(getX(), newY);
+
+                if (step[0] >= steps) {
+                    Animator.removeTask(this);
+                    setLocation(getX(), targetY); // 精准定位
+                    if (onDone != null) onDone.run();
+                }
             }
-        });
-        t.start();
+        };
+
+        Animator.addTask(task);
     }
 
     public int pixelYForRow(int row) {
