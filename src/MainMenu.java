@@ -19,6 +19,14 @@ public class MainMenu extends JFrame {
         bg.setBounds(0, 0, 400, 700);
         setContentPane(bg);
 
+        // ===== 顶部金币显示 =====
+        JLabel coinLabel = new JLabel("Coins: " + CoinManager.getInstance().getCoins());
+        coinLabel.setForeground(Color.YELLOW);
+        coinLabel.setFont(new Font("Arial", Font.BOLD, 18));
+        coinLabel.setBounds(10, 10, 200, 30); // 左上角显示
+        bg.add(coinLabel);
+
+
         // 内容容器
         JPanel content = new JPanel();
         content.setOpaque(false);
