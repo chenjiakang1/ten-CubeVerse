@@ -81,16 +81,33 @@ public class MainWindow {
                 bgPanel.add(scoreLabel);
                 // ⭐ 绑定到 ScoreManager，让它自己刷新显示
                 ScoreManager.bindLabel(scoreLabel);
+                // <<< ADD: 在分数下方添加金币显示并绑定到 ScoreManager >>>
+                JLabel coinLabel = new JLabel("Coins: " + ScoreManager.getCoins());
+                coinLabel.setForeground(Color.YELLOW);
+                coinLabel.setFont(new Font("Arial", Font.BOLD, 18));
+                coinLabel.setBounds(WINDOW_WIDTH - 150, 50, 130, 30);
+                bgPanel.add(coinLabel);
+                ScoreManager.bindCoinLabel(coinLabel);
+                // <<< END ADD >>>
 
                 // ⭐ 设置本局的通关目标
                 ScoreManager.setGoal(goalScore, finalScore -> {
                     if (levelCleared) return;
                     levelCleared = true;
 
-                    // 弹出通关提示框
+                    // ====== 新增：根据最终分数计算并发放金币（与积分联动） ======
+                    int coinsEarned = ScoreManager.computeCoinsFromScore(finalScore);
+                    ScoreManager.addCoins(coinsEarned);
+                    int totalCoins = ScoreManager.getCoins();
+
+                    // 弹出通关提示框（显示本次获得金币与总金币）
+                    String msg = "Stage Cleared!\nScore: " + finalScore + " / " + goalScore
+                            + "\nCoins earned: " + coinsEarned
+                            + "\nTotal Coins: " + totalCoins;
+
                     JOptionPane.showMessageDialog(
                             frame,
-                            "Stage Cleared!\nScore: " + finalScore + " / " + goalScore,
+                            msg,
                             "Level Complete",
                             JOptionPane.INFORMATION_MESSAGE
                     );
@@ -99,6 +116,7 @@ public class MainWindow {
                     frame.dispose();
                     SwingUtilities.invokeLater(() -> new MainMenu().setVisible(true));
                 });
+
 
                 // 自动居中创建按钮（随机 & 不含任何“可消连通块”）
                 createButtons(bgPanel, manager, TOTAL_COUNT);

@@ -1,5 +1,8 @@
 import javax.swing.JLabel;
 import java.util.List;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 
 public final class ScoreManager {
 
@@ -13,6 +16,70 @@ public final class ScoreManager {
 
     private static int goalScore = 0;            // 目标分数（0 表示不开启）
     private static GoalListener goalListener;    // 通关回调
+    // ===== 插入：金币管理（持久化 + UI 绑定 + 计算策略） =====
+    private static final Path COIN_SAVE_PATH = Paths.get(System.getProperty("user.home"), ".cubeverse_coins.txt");
+    private static int coins = loadCoins();      // 持久化读取的金币总数
+    private static JLabel coinBoundLabel = null; // 绑定到 UI 的金币显示标签
+
+    private static int loadCoins() {
+        try {
+            if (Files.exists(COIN_SAVE_PATH)) {
+                String s = new String(Files.readAllBytes(COIN_SAVE_PATH)).trim();
+                if (!s.isEmpty()) {
+                    return Integer.parseInt(s);
+                }
+            }
+        } catch (Exception e) {
+            System.err.println("ScoreManager: loadCoins failed: " + e.getMessage());
+        }
+        return 0;
+    }
+
+    private static void saveCoins() {
+        try {
+            Files.write(COIN_SAVE_PATH, String.valueOf(coins).getBytes());
+        } catch (Exception e) {
+            System.err.println("ScoreManager: saveCoins failed: " + e.getMessage());
+        }
+        refreshCoinLabel();
+    }
+
+    private static void refreshCoinLabel() {
+        if (coinBoundLabel != null) {
+            coinBoundLabel.setText("Coins: " + coins);
+        }
+    }
+
+    /** 绑定 UI 上的金币显示标签（MainWindow 将调用） */
+    public static void bindCoinLabel(JLabel label) {
+        coinBoundLabel = label;
+        refreshCoinLabel();
+    }
+
+    public static int getCoins() {
+        return coins;
+    }
+
+    public static void setCoins(int value) {
+        if (value < 0) value = 0;
+        coins = value;
+        saveCoins();
+    }
+
+    public static void addCoins(int delta) {
+        if (delta <= 0) return;
+        coins += delta;
+        saveCoins();
+    }
+
+    /**
+     * 根据最终分数计算应得金币（策略可改）
+     * 当前策略：每 50 分 1 金币，最多也至少给 1 个金币（确保有奖励）
+     */
+    public static int computeCoinsFromScore(int finalScore) {
+        return Math.max(1, finalScore / 50);
+    }
+    // ===== End 插入 =====
 
     private ScoreManager() {}
 
