@@ -32,7 +32,7 @@ public class Match3Manager {
             }
         }
 
-        // ❗如果没有按钮（空面板），那就调用默认值
+        // 如果没有按钮（空面板），那就调用默认值
         removeMatches(parent, 30, 30, 0, 0, 5, 5, 5);
     }
 
@@ -50,7 +50,7 @@ public class Match3Manager {
         }
         Set<Point> visited = new HashSet<>();
         Set<Point> toRemove = new HashSet<>();
-        java.util.List<Integer> groupSizes = new java.util.ArrayList<>(); // ⭐ 记录每个连通块大小
+        java.util.List<Integer> groupSizes = new java.util.ArrayList<>(); //  记录每个连通块大小
         int[][] DIRS = {{1,0}, {-1,0}, {0,1}, {0,-1}};
 
         // BFS 搜索连通块
@@ -80,7 +80,7 @@ public class Match3Manager {
 
             if (comp.size() >= 3) {
                 toRemove.addAll(comp);
-                groupSizes.add(comp.size()); // ⭐ 每个连通块的大小
+                groupSizes.add(comp.size()); //  每个连通块的大小
             }
         }
 
@@ -91,7 +91,7 @@ public class Match3Manager {
         }
         // ▶ 有消除，本轮属于连锁第 N 次
         comboStep++;
-        // ⭐ 计算本次消除的全部奖励分数（基础分 + size bonus + combo bonus）
+        //  计算本次消除的全部奖励分数（基础分 + size bonus + combo bonus）
         int gained = ScoreManager.computeComboScore(groupSizes, comboStep);
         ScoreManager.addScore(gained);
         SoundManager.playDestroy();

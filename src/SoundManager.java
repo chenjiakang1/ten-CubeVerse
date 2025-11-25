@@ -123,6 +123,7 @@ public class SoundManager {
         try {
             if (clip.isControlSupported(FloatControl.Type.MASTER_GAIN)) {
                 FloatControl gain = (FloatControl) clip.getControl(FloatControl.Type.MASTER_GAIN);
+
                 // 限制在可用范围内
                 float clamped = Math.max(gain.getMinimum(), Math.min(gain.getMaximum(), gainDb));
                 gain.setValue(clamped);

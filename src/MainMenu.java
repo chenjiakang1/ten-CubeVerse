@@ -5,6 +5,7 @@ import java.net.URL;
 public class MainMenu extends JFrame {
 
     private JComboBox<String> difficultyBox;
+    private JLabel coinLabel;
 
     public MainMenu() {
         super("CubeVerse - Main Menu");
@@ -20,7 +21,7 @@ public class MainMenu extends JFrame {
         setContentPane(bg);
 
         // ===== 顶部金币显示 =====
-        JLabel coinLabel = new JLabel("Coins: " + CoinManager.getInstance().getCoins());
+        coinLabel = new JLabel("Coins: " + CoinManager.getInstance().getCoins());
         coinLabel.setForeground(Color.YELLOW);
         coinLabel.setFont(new Font("Arial", Font.BOLD, 18));
         coinLabel.setBounds(10, 10, 200, 30); // 左上角显示
@@ -58,7 +59,7 @@ public class MainMenu extends JFrame {
         content.add(difficultyBox);
         content.add(Box.createVerticalStrut(24));
 
-        // ✅ 使用图片按钮
+        // 使用图片按钮
         JButton startBtn = createImageButton("/button.png", "/button.png", "Start Game");
         startBtn.addActionListener(e -> startGame());
         content.add(startBtn);
@@ -67,6 +68,10 @@ public class MainMenu extends JFrame {
         JButton exitBtn = createImageButton("/button.png", "/button.png", "Exit");
         exitBtn.addActionListener(e -> System.exit(0));
         content.add(exitBtn);
+
+        new javax.swing.Timer(200, e -> {
+            coinLabel.setText("Coins: " + CoinManager.getInstance().getCoins());
+        }).start();
     }
 
     /** 创建带背景图片和文字的按钮 */
@@ -126,5 +131,6 @@ public class MainMenu extends JFrame {
         game.setVisible(true);
         dispose();
     }
+
 
 }

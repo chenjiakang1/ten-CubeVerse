@@ -11,8 +11,8 @@ import javax.swing.KeyStroke;
 public class MainWindow {
     // ========== 记分 & 通关字段 ==========
     private JLabel scoreLabel;          // 显示右上角分数
-    private int goalScore;          // ⭐ 该局目标分数
-    private boolean levelCleared;   // ⭐ 防止重复触发通关
+    private int goalScore;          //  该局目标分数
+    private boolean levelCleared;   //  防止重复触发通关
     // ===== 固定参数 =====
     private static final int WINDOW_WIDTH = 400;
     private static final int WINDOW_HEIGHT = 700;
@@ -30,13 +30,13 @@ public class MainWindow {
     private int ORIGIN_Y;
 
     public MainWindow(int difficulty) {
-        // ⭐ 新建 MainWindow = 开始一局 ⇒ 分数清零
+        //  新建 MainWindow = 开始一局 ⇒ 分数清零
         ScoreManager.reset();
 
         switch (difficulty) {
             case 1:
                 COLS = 5; COLS_PER_ROW = 5; TOTAL_COUNT = 25;
-                goalScore = 100;   // ⭐ 简单模式通关分
+                goalScore = 100;   //  简单模式通关分
                 break;
             case 2:
                 COLS = 6; COLS_PER_ROW = 6; TOTAL_COUNT = 36;
@@ -57,78 +57,74 @@ public class MainWindow {
     }
 
     public void setVisible(boolean visible) {
-        if (visible) {
-            SwingUtilities.invokeLater(() -> {
-                JFrame frame = new JFrame("CubeVerse");
-                frame.setSize(WINDOW_WIDTH, WINDOW_HEIGHT);
-                frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-                frame.setLocationRelativeTo(null);
-                frame.setLayout(null);
+        if (!visible) return;
 
-                // 背景面板
-                MainWindowBack bgPanel = new MainWindowBack("/MainWindowBack.png");
-                bgPanel.setLayout(null);
-                bgPanel.setBounds(0, 0, WINDOW_WIDTH, WINDOW_HEIGHT);
-                frame.setContentPane(bgPanel);
+        SwingUtilities.invokeLater(() -> {
+            JFrame frame = new JFrame("CubeVerse");
+            frame.setSize(WINDOW_WIDTH, WINDOW_HEIGHT);
+            frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+            frame.setLocationRelativeTo(null);
+            frame.setLayout(null);
 
-                // 管理器
-                SwapManager manager = new SwapManager(this, 300);
-                // ⭐ 在背景面板上添加右上角分数显示
-                scoreLabel = new JLabel("Score: 0");
-                scoreLabel.setForeground(Color.WHITE);
-                scoreLabel.setFont(new Font("Arial", Font.BOLD, 18));
-                scoreLabel.setBounds(WINDOW_WIDTH - 150, 20, 130, 30);
-                bgPanel.add(scoreLabel);
-                // ⭐ 绑定到 ScoreManager，让它自己刷新显示
-                ScoreManager.bindLabel(scoreLabel);
-                // <<< ADD: 在分数下方添加金币显示并绑定到 ScoreManager >>>
-                JLabel coinLabel = new JLabel("Coins: " + ScoreManager.getCoins());
-                coinLabel.setForeground(Color.YELLOW);
-                coinLabel.setFont(new Font("Arial", Font.BOLD, 18));
-                coinLabel.setBounds(WINDOW_WIDTH - 150, 50, 130, 30);
-                bgPanel.add(coinLabel);
-                ScoreManager.bindCoinLabel(coinLabel);
-                // <<< END ADD >>>
+            // 背景面板
+            MainWindowBack bgPanel = new MainWindowBack("/MainWindowBack.png");
+            bgPanel.setLayout(null);
+            bgPanel.setBounds(0, 0, WINDOW_WIDTH, WINDOW_HEIGHT);
+            frame.setContentPane(bgPanel);
 
-                // ⭐ 设置本局的通关目标
-                ScoreManager.setGoal(goalScore, finalScore -> {
-                    if (levelCleared) return;
-                    levelCleared = true;
+            // 分数显示
+            scoreLabel = new JLabel("Score: 0");
+            scoreLabel.setForeground(Color.WHITE);
+            scoreLabel.setFont(new Font("Arial", Font.BOLD, 18));
+            scoreLabel.setBounds(WINDOW_WIDTH - 150, 20, 130, 30);
+            bgPanel.add(scoreLabel);
+            ScoreManager.bindLabel(scoreLabel);
 
-                    // ====== 新增：根据最终分数计算并发放金币（与积分联动） ======
-                    int coinsEarned = ScoreManager.computeCoinsFromScore(finalScore);
-                    ScoreManager.addCoins(coinsEarned);
-                    int totalCoins = ScoreManager.getCoins();
+            // ⭐ 金币显示 — 完全使用 CoinManager ⭐
+            JLabel coinLabel = new JLabel("Coins: " + CoinManager.getInstance().getCoins());
+            coinLabel.setForeground(Color.YELLOW);
+            coinLabel.setFont(new Font("Arial", Font.BOLD, 18));
+            coinLabel.setBounds(WINDOW_WIDTH - 150, 50, 130, 30);
+            bgPanel.add(coinLabel);
 
-                    // 弹出通关提示框（显示本次获得金币与总金币）
-                    String msg = "Stage Cleared!\nScore: " + finalScore + " / " + goalScore
-                            + "\nCoins earned: " + coinsEarned
-                            + "\nTotal Coins: " + totalCoins;
+            // 自动刷新金币（200ms）
+            new javax.swing.Timer(200, e ->
+                    coinLabel.setText("Coins: " + CoinManager.getInstance().getCoins())
+            ).start();
 
-                    JOptionPane.showMessageDialog(
-                            frame,
-                            msg,
-                            "Level Complete",
-                            JOptionPane.INFORMATION_MESSAGE
-                    );
+            // 通关逻辑
+            ScoreManager.setGoal(goalScore, finalScore -> {
+                if (levelCleared) return;
+                levelCleared = true;
 
-                    // 回到主菜单（你也可以改成进下一关）
-                    frame.dispose();
-                    SwingUtilities.invokeLater(() -> new MainMenu().setVisible(true));
-                });
+                // ⭐ 计算奖励金币（每 50 分 1 金币，至少 1 个）
+                int coinsEarned = Math.max(1, finalScore / 50);
 
+                // ⭐ CoinManager 增加金币
+                CoinManager.getInstance().addCoins(coinsEarned);
 
-                // 自动居中创建按钮（随机 & 不含任何“可消连通块”）
-                createButtons(bgPanel, manager, TOTAL_COUNT);
+                JOptionPane.showMessageDialog(
+                        frame,
+                        "Stage Cleared!\nScore: " + finalScore + " / " + goalScore +
+                                "\nCoins earned: " + coinsEarned +
+                                "\nTotal Coins: " + CoinManager.getInstance().getCoins(),
+                        "Level Complete",
+                        JOptionPane.INFORMATION_MESSAGE
+                );
 
-                // 返回主菜单按钮 + ESC
-                addBackToMenu(bgPanel, frame);
-
-                frame.setVisible(true);
+                frame.dispose();
+                new MainMenu().setVisible(true);
             });
-        }
-    }
 
+            // 棋盘按钮
+            createButtons(bgPanel, new SwapManager(this, 300), TOTAL_COUNT);
+
+            // 返回菜单按钮
+            addBackToMenu(bgPanel, frame);
+
+            frame.setVisible(true);
+        });
+    }
     /** 生成整盘：用 4 邻接连通块检测避免“初始即消” */
     private void createButtons(JPanel bgPanel, SwapManager manager, int totalCount) {
         String[] imagePaths = {
@@ -153,7 +149,7 @@ public class MainWindow {
                 break; // 合格
             }
             if (attempt == MAX_ATTEMPTS - 1) {
-                System.err.println("⚠️ 初始盘面生成达到上限，仍存在可消块：将使用最后一次结果（可能会开局即消）。");
+                System.err.println("️ 初始盘面生成达到上限，仍存在可消块：将使用最后一次结果（可能会开局即消）。");
             }
         }
 
@@ -246,7 +242,7 @@ public class MainWindow {
             Image scaled = icon.getImage().getScaledInstance(140, 40, Image.SCALE_SMOOTH);
             back.setIcon(new ImageIcon(scaled));
         } else {
-            System.err.println("⚠️ 找不到 /button.png");
+            System.err.println(" 找不到 /button.png");
         }
 
         back.setBorderPainted(false);
