@@ -76,6 +76,9 @@ public class SwapManager implements ActionListener {
                     );
                 });
             }
+
+            window.decreaseStep();   // 每次交换后扣 1 步
+
             swapping = false;
         };
 

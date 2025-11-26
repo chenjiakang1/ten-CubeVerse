@@ -29,6 +29,12 @@ public class MainWindow {
     private int ORIGIN_X;
     private int ORIGIN_Y;
 
+    private int stepsLeft;      // 剩余步数
+    private JLabel stepsLabel;  // 显示步数
+
+    private String mode;        //难度
+
+
     public MainWindow(int difficulty) {
         //  新建 MainWindow = 开始一局 ⇒ 分数清零
         ScoreManager.reset();
@@ -36,23 +42,33 @@ public class MainWindow {
         switch (difficulty) {
             case 1:
                 COLS = 5; COLS_PER_ROW = 5; TOTAL_COUNT = 25;
-                goalScore = 100;   //  简单模式通关分
+                goalScore = 100;   // 简单模式通关分
+                stepsLeft = 3;    // 简单模式步数
+                mode = "easy";
                 break;
             case 2:
                 COLS = 6; COLS_PER_ROW = 6; TOTAL_COUNT = 36;
                 goalScore = 200;
+                stepsLeft = 60;
+                mode = "normal";
                 break;
             case 3:
                 COLS = 7; COLS_PER_ROW = 7; TOTAL_COUNT = 49;
                 goalScore = 300;
+                stepsLeft = 90;
+                mode = "hard";
                 break;
             case 4:
                 COLS = 8; COLS_PER_ROW = 8; TOTAL_COUNT = 64;
                 goalScore = 400;
+                stepsLeft = 120;
+                mode = "expert";
                 break;
             default:
                 COLS = 5; COLS_PER_ROW = 5; TOTAL_COUNT = 25;
                 goalScore = 100;
+                stepsLeft = 30;
+                mode = "easy";
         }
     }
 
@@ -66,100 +82,146 @@ public class MainWindow {
             frame.setLocationRelativeTo(null);
             frame.setLayout(null);
 
-            // 背景面板
+            // 1. 背景层（最底层）
             MainWindowBack bgPanel = new MainWindowBack("/MainWindowBack.png");
             bgPanel.setLayout(null);
             bgPanel.setBounds(0, 0, WINDOW_WIDTH, WINDOW_HEIGHT);
             frame.setContentPane(bgPanel);
 
-            // 分数显示
+            // 2. 添加提示背景图（木牌）→ 在文字之前 add
+            ImageIcon hintIcon = new ImageIcon(getClass().getResource("/HintPanel.png"));
+            Image hintImg = hintIcon.getImage().getScaledInstance(180, 170, Image.SCALE_SMOOTH);
+            JLabel hintBackground = new JLabel(new ImageIcon(hintImg));
+            hintBackground.setBounds(WINDOW_WIDTH - 160, 0, 180, 170);
+            bgPanel.add(hintBackground);   // 这一步必须在所有文字前
+
+
+
+            // 3. 添加文字（自动盖在木牌前面）
+            JLabel goalLabel = new JLabel("Goal: " + goalScore);
+            goalLabel.setForeground(Color.CYAN);
+            goalLabel.setFont(new Font("Arial", Font.BOLD, 12));
+            goalLabel.setBounds(WINDOW_WIDTH - 120, 89, 130, 30);
+            bgPanel.add(goalLabel);
+
+
             scoreLabel = new JLabel("Score: 0");
             scoreLabel.setForeground(Color.WHITE);
-            scoreLabel.setFont(new Font("Arial", Font.BOLD, 18));
-            scoreLabel.setBounds(WINDOW_WIDTH - 150, 20, 130, 30);
+            scoreLabel.setFont(new Font("Arial", Font.BOLD, 12));
+            scoreLabel.setBounds(WINDOW_WIDTH - 120, 101, 130, 30);
             bgPanel.add(scoreLabel);
             ScoreManager.bindLabel(scoreLabel);
 
-            // ⭐ 金币显示 — 完全使用 CoinManager ⭐
             JLabel coinLabel = new JLabel("Coins: " + CoinManager.getInstance().getCoins());
             coinLabel.setForeground(Color.YELLOW);
-            coinLabel.setFont(new Font("Arial", Font.BOLD, 18));
-            coinLabel.setBounds(WINDOW_WIDTH - 150, 50, 130, 30);
+            coinLabel.setFont(new Font("Arial", Font.BOLD, 12));
+            coinLabel.setBounds(WINDOW_WIDTH - 120, 113, 130, 30);
             bgPanel.add(coinLabel);
 
-            // 自动刷新金币（200ms）
             new javax.swing.Timer(200, e ->
                     coinLabel.setText("Coins: " + CoinManager.getInstance().getCoins())
             ).start();
 
-            // 通关逻辑
+            stepsLabel = new JLabel("Steps: " + stepsLeft);
+            stepsLabel.setForeground(Color.WHITE);
+            stepsLabel.setFont(new Font("Arial", Font.BOLD, 12));
+            stepsLabel.setBounds(WINDOW_WIDTH - 120, 125, 130, 30);
+            bgPanel.add(stepsLabel);
+
+            // 将木牌放到底层（仅高于背景图）
+            int deepest = bgPanel.getComponentCount() - 1;
+            bgPanel.setComponentZOrder(hintBackground, deepest);
+
             ScoreManager.setGoal(goalScore, finalScore -> {
                 if (levelCleared) return;
                 levelCleared = true;
 
-                // ⭐ 计算奖励金币（每 50 分 1 金币，至少 1 个）
                 int coinsEarned = Math.max(1, finalScore / 50);
-
-                // ⭐ CoinManager 增加金币
                 CoinManager.getInstance().addCoins(coinsEarned);
 
-                JOptionPane.showMessageDialog(
-                        frame,
-                        "Stage Cleared!\nScore: " + finalScore + " / " + goalScore +
-                                "\nCoins earned: " + coinsEarned +
-                                "\nTotal Coins: " + CoinManager.getInstance().getCoins(),
-                        "Level Complete",
-                        JOptionPane.INFORMATION_MESSAGE
-                );
+                // 关闭当前游戏窗口
+                JFrame window = (JFrame) SwingUtilities.getWindowAncestor(scoreLabel);
+                if (window != null) window.dispose();
 
-                frame.dispose();
-                new MainMenu().setVisible(true);
+                // 准备结束文字
+                String msg = "<html>Stage Cleared!<br>"
+                        + "Score: " + finalScore + " / " + goalScore + "<br>"
+                        + "Coins earned: " + coinsEarned + "</html>";
+
+                // 打开带背景图的结束界面
+                new EndWindow(msg).setVisible(true);
             });
 
-            // 棋盘按钮
             createButtons(bgPanel, new SwapManager(this, 300), TOTAL_COUNT);
-
-            // 返回菜单按钮
             addBackToMenu(bgPanel, frame);
 
             frame.setVisible(true);
         });
     }
-    /** 生成整盘：用 4 邻接连通块检测避免“初始即消” */
+
+
+    /** 生成整盘：根据难度选择不同数量的图片 */
     private void createButtons(JPanel bgPanel, SwapManager manager, int totalCount) {
-        String[] imagePaths = {
+
+        // 图片资源
+        String[] allImages = {
                 "/Block_001.png", "/Block_002.png", "/Block_003.png", "/Block_004.png", "/Block_005.png",
                 "/Block_006.png", "/Block_007.png", "/Block_008.png", "/Block_009.png", "/Block_010.png"
         };
+
+        String[] imagePaths;
+
+        // 根据难度决定图片数量
+        switch (mode.toLowerCase()) {
+            case "easy":
+                imagePaths = Arrays.copyOfRange(allImages, 0, 5);
+                break;
+
+            case "normal":
+                imagePaths = Arrays.copyOfRange(allImages, 0, 7);
+                break;
+
+            case "hard":
+            case "expert":       // expert 使用全部 10 张
+            default:
+                imagePaths = allImages;
+                break;
+        }
+
         Random random = new Random();
 
-        // ---- 居中计算 ----
         int totalWidth  = COLS_PER_ROW * (CELL_W + HGAP) - HGAP;
-        this.ORIGIN_X = (WINDOW_WIDTH  - totalWidth)  / 2;
-        int rows        = (int) Math.ceil((double) totalCount / COLS_PER_ROW);
+        this.ORIGIN_X = (WINDOW_WIDTH - totalWidth) / 2;
+
+        int rows = (int) Math.ceil((double) totalCount / COLS_PER_ROW);
         int totalHeight = rows * (CELL_H + VGAP) - VGAP;
         this.ORIGIN_Y = (WINDOW_HEIGHT - totalHeight) / 2;
 
-        // 反复随机直到“没有任何可消连通块”
         final int MAX_ATTEMPTS = 2000;
         int[][] types = null;
+
         for (int attempt = 0; attempt < MAX_ATTEMPTS; attempt++) {
             types = randomFill(rows, COLS_PER_ROW, imagePaths.length, random);
+
             if (!hasAnyMatchByFourAdj(types, rows, COLS_PER_ROW)) {
-                break; // 合格
+                break;
             }
+
             if (attempt == MAX_ATTEMPTS - 1) {
-                System.err.println("️ 初始盘面生成达到上限，仍存在可消块：将使用最后一次结果（可能会开局即消）。");
+                System.err.println("⚠ 初始盘面生成达到上限，仍存在可消块。");
             }
         }
 
         // 落盘
         for (int r = 0; r < rows; r++) {
             for (int c = 0; c < COLS_PER_ROW; c++) {
+
                 int x = ORIGIN_X + c * (CELL_W + HGAP);
                 int y = ORIGIN_Y + r * (CELL_H + VGAP);
+
                 String path = imagePaths[types[r][c]];
                 ImageButton btn = createImageButton(path, x, y, ORIGIN_X, ORIGIN_Y, manager);
+
                 bgPanel.add(btn);
             }
         }
@@ -167,6 +229,7 @@ public class MainWindow {
         bgPanel.revalidate();
         bgPanel.repaint();
     }
+
 
     /** 用随机数填充整盘（纯随机即可；可加点局部约束提升成功率） */
     private int[][] randomFill(int rows, int cols, int kindCount, Random rnd) {
@@ -293,6 +356,22 @@ public class MainWindow {
 
         return btn;
     }
+
+    public void decreaseStep() {
+        stepsLeft--;
+        stepsLabel.setText("Steps: " + stepsLeft);
+
+        if (stepsLeft <= 0) {
+
+            // 关闭当前游戏窗口（MainWindow）
+            JFrame frame = (JFrame) SwingUtilities.getWindowAncestor(stepsLabel);
+            if (frame != null) frame.dispose();
+
+            // 显示带背景图的结算界面
+            new EndWindow("<html>Game Over!<br>No steps remaining.</html>").setVisible(true);
+        }
+    }
+
 
     public int getCellW() { return CELL_W; }
     public int getCellH() { return CELL_H; }
