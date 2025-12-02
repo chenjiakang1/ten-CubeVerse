@@ -1,3 +1,5 @@
+package src;
+
 import javax.sound.sampled.*;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;

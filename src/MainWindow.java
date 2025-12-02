@@ -1,3 +1,5 @@
+package src;
+
 import javax.swing.*;
 import java.awt.*;
 import java.awt.event.ActionListener;
@@ -11,8 +13,9 @@ import javax.swing.KeyStroke;
 public class MainWindow {
     // ========== 记分 & 通关字段 ==========
     private JLabel scoreLabel;          // 显示右上角分数
-    private int goalScore;          //  该局目标分数
-    private boolean levelCleared;   //  防止重复触发通关
+    private int goalScore;              // 该局目标分数
+    private boolean levelCleared;       // 防止重复触发通关
+
     // ===== 固定参数 =====
     private static final int WINDOW_WIDTH = 400;
     private static final int WINDOW_HEIGHT = 700;
@@ -32,18 +35,41 @@ public class MainWindow {
     private int stepsLeft;      // 剩余步数
     private JLabel stepsLabel;  // 显示步数
 
-    private String mode;        //难度
+    private String mode;        // 难度
+
+    // ========== 道具模式 & 次数 ==========
+    private enum GameMode {
+        NORMAL,
+        BOMB,
+        CLEAR_SAME
+    }
+
+    private GameMode currentMode = GameMode.NORMAL;
+
+    // 道具次数（你可以根据需要改初始值）
+    private int bombCount = 3;
+    private int shuffleCount = 2;
+    private int clearCount = 2;
+
+    // 道具按钮 & 显示次数的 Label
+    private JButton bombBtn;
+    private JButton shuffleBtn;
+    private JButton clearBtn;
+
+    private JLabel bombCountLabel;
+    private JLabel shuffleCountLabel;
+    private JLabel clearCountLabel;
 
 
     public MainWindow(int difficulty) {
-        //  新建 MainWindow = 开始一局 ⇒ 分数清零
+        // 新建 MainWindow = 开始一局 ⇒ 分数清零
         ScoreManager.reset();
 
         switch (difficulty) {
             case 1:
                 COLS = 5; COLS_PER_ROW = 5; TOTAL_COUNT = 25;
                 goalScore = 100;   // 简单模式通关分
-                stepsLeft = 3;    // 简单模式步数
+                stepsLeft = 30;    // 简单模式步数（你原来这里写的是 3，我改回 30 更合理）
                 mode = "easy";
                 break;
             case 2:
@@ -88,22 +114,19 @@ public class MainWindow {
             bgPanel.setBounds(0, 0, WINDOW_WIDTH, WINDOW_HEIGHT);
             frame.setContentPane(bgPanel);
 
-            // 2. 添加提示背景图（木牌）→ 在文字之前 add
+            // 2. 提示背景图（木牌）
             ImageIcon hintIcon = new ImageIcon(getClass().getResource("/HintPanel.png"));
             Image hintImg = hintIcon.getImage().getScaledInstance(180, 170, Image.SCALE_SMOOTH);
             JLabel hintBackground = new JLabel(new ImageIcon(hintImg));
             hintBackground.setBounds(WINDOW_WIDTH - 160, 0, 180, 170);
-            bgPanel.add(hintBackground);   // 这一步必须在所有文字前
+            bgPanel.add(hintBackground);
 
-
-
-            // 3. 添加文字（自动盖在木牌前面）
+            // 3. 文字
             JLabel goalLabel = new JLabel("Goal: " + goalScore);
             goalLabel.setForeground(Color.CYAN);
             goalLabel.setFont(new Font("Arial", Font.BOLD, 12));
             goalLabel.setBounds(WINDOW_WIDTH - 120, 89, 130, 30);
             bgPanel.add(goalLabel);
-
 
             scoreLabel = new JLabel("Score: 0");
             scoreLabel.setForeground(Color.WHITE);
@@ -128,10 +151,11 @@ public class MainWindow {
             stepsLabel.setBounds(WINDOW_WIDTH - 120, 125, 130, 30);
             bgPanel.add(stepsLabel);
 
-            // 将木牌放到底层（仅高于背景图）
+            // 木牌放在底层
             int deepest = bgPanel.getComponentCount() - 1;
             bgPanel.setComponentZOrder(hintBackground, deepest);
 
+            // 设定通关回调
             ScoreManager.setGoal(goalScore, finalScore -> {
                 if (levelCleared) return;
                 levelCleared = true;
@@ -139,26 +163,26 @@ public class MainWindow {
                 int coinsEarned = Math.max(1, finalScore / 50);
                 CoinManager.getInstance().addCoins(coinsEarned);
 
-                // 关闭当前游戏窗口
                 JFrame window = (JFrame) SwingUtilities.getWindowAncestor(scoreLabel);
                 if (window != null) window.dispose();
 
-                // 准备结束文字
                 String msg = "<html>Stage Cleared!<br>"
                         + "Score: " + finalScore + " / " + goalScore + "<br>"
                         + "Coins earned: " + coinsEarned + "</html>";
 
-                // 打开带背景图的结束界面
                 new EndWindow(msg).setVisible(true);
             });
 
-            createButtons(bgPanel, new SwapManager(this, 300), TOTAL_COUNT);
+            // === 创建棋盘 & 道具 ===
+            SwapManager manager = new SwapManager(this, 300);
+            createButtons(bgPanel, manager, TOTAL_COUNT);
+            initPowerUps(bgPanel);   // ⭐ 新增：初始化道具
             addBackToMenu(bgPanel, frame);
 
+            updatePowerUpUI();       // ⭐ 启动时刷新一次道具 UI
             frame.setVisible(true);
         });
     }
-
 
     /** 生成整盘：根据难度选择不同数量的图片 */
     private void createButtons(JPanel bgPanel, SwapManager manager, int totalCount) {
@@ -231,7 +255,7 @@ public class MainWindow {
     }
 
 
-    /** 用随机数填充整盘（纯随机即可；可加点局部约束提升成功率） */
+    /** 用随机数填充整盘 */
     private int[][] randomFill(int rows, int cols, int kindCount, Random rnd) {
         int[][] g = new int[rows][cols];
         for (int r = 0; r < rows; r++) {
@@ -280,6 +304,7 @@ public class MainWindow {
         }
     }
 
+    /** 棋盘格子按钮（根据当前模式选择：交换 / 炸弹 / 同色） */
     private ImageButton createImageButton(String path, int x, int y,
                                           int originX, int originY,
                                           SwapManager manager) {
@@ -288,7 +313,39 @@ public class MainWindow {
         btn.configureGrid(CELL_W, CELL_H, originX, originY, COLS, HGAP, VGAP);
         btn.snapToGrid();
         removeAllActionListeners(btn);
-        btn.addActionListener(manager);
+
+        btn.addActionListener(ev -> {
+            ImageButton self = (ImageButton) ev.getSource();
+            Container parent = self.getParent();
+            if (!(parent instanceof JPanel)) return;
+            JPanel panel = (JPanel) parent;
+
+            switch (currentMode) {
+                case NORMAL:
+                    // 正常模式：走原来 SwapManager 的逻辑
+                    manager.actionPerformed(ev);
+                    break;
+
+                case BOMB:
+                    if (bombCount > 0) {
+                        PowerUpManager.useBomb(panel, self);
+                        bombCount--;
+                        updatePowerUpUI();
+                    }
+                    currentMode = GameMode.NORMAL;
+                    break;
+
+                case CLEAR_SAME:
+                    if (clearCount > 0) {
+                        PowerUpManager.useClearSameType(panel, self);
+                        clearCount--;
+                        updatePowerUpUI();
+                    }
+                    currentMode = GameMode.NORMAL;
+                    break;
+            }
+        });
+
         return btn;
     }
 
@@ -357,21 +414,110 @@ public class MainWindow {
         return btn;
     }
 
+    /** 初始化三个道具按钮 + 次数标签 */
+    private void initPowerUps(JPanel bgPanel) {
+        int iconSize = 40;
+        int iconGap = 10;
+
+        int totalGridWidth = COLS_PER_ROW * (CELL_W + HGAP) - HGAP;
+        int gridCenterX = ORIGIN_X + totalGridWidth / 2;
+
+        int totalIconWidth = 3 * iconSize + 2 * iconGap;
+        int firstIconX = gridCenterX - totalIconWidth / 2;
+        int iconY = ORIGIN_Y - 60;
+
+        // 💣 炸弹
+        bombBtn = createIconButton("/power_bomb.png", firstIconX, iconY, iconSize, bgPanel);
+        bombBtn.setToolTipText("Bomb: clear 3x3 area");
+        bombBtn.addActionListener(e -> {
+            if (bombCount <= 0) return;
+            currentMode = GameMode.BOMB;
+        });
+
+        // 🔀 打乱
+        shuffleBtn = createIconButton("/power_shuffle.png",
+                firstIconX + iconSize + iconGap, iconY, iconSize, bgPanel);
+        shuffleBtn.setToolTipText("Shuffle: randomize blocks");
+        shuffleBtn.addActionListener(e -> {
+            if (shuffleCount <= 0) return;
+            PowerUpManager.useShuffle(bgPanel);
+            shuffleCount--;
+            updatePowerUpUI();
+        });
+
+        // 🎨 同色
+        clearBtn = createIconButton("/power_clear.png",
+                firstIconX + 2 * (iconSize + iconGap), iconY, iconSize, bgPanel);
+        clearBtn.setToolTipText("Clear all blocks of one type");
+        clearBtn.addActionListener(e -> {
+            if (clearCount <= 0) return;
+            currentMode = GameMode.CLEAR_SAME;
+        });
+
+        int labelY = iconY + iconSize + 2;
+
+        bombCountLabel = new JLabel();
+        bombCountLabel.setBounds(firstIconX + iconSize / 2 - 10, labelY, 40, 20);
+        bombCountLabel.setForeground(Color.WHITE);
+        bgPanel.add(bombCountLabel);
+
+        shuffleCountLabel = new JLabel();
+        shuffleCountLabel.setBounds(firstIconX + (iconSize + iconGap) + iconSize / 2 - 10, labelY, 40, 20);
+        shuffleCountLabel.setForeground(Color.WHITE);
+        bgPanel.add(shuffleCountLabel);
+
+        clearCountLabel = new JLabel();
+        clearCountLabel.setBounds(firstIconX + 2 * (iconSize + iconGap) + iconSize / 2 - 10, labelY, 40, 20);
+        clearCountLabel.setForeground(Color.WHITE);
+        bgPanel.add(clearCountLabel);
+    }
+
+    /** 创建带图标的 JButton（道具按钮用） */
+    private JButton createIconButton(String path, int x, int y, int size, JComponent parent) {
+        java.net.URL url = getClass().getResource(path);
+        JButton btn;
+        if (url == null) {
+            System.err.println("图标资源未找到: " + path);
+            btn = new JButton("?");
+        } else {
+            ImageIcon icon = new ImageIcon(url);
+            Image img = icon.getImage().getScaledInstance(size, size, Image.SCALE_SMOOTH);
+            icon = new ImageIcon(img);
+            btn = new JButton(icon);
+        }
+
+        btn.setBounds(x, y, size, size);
+        btn.setContentAreaFilled(false);
+        btn.setBorderPainted(false);
+        btn.setFocusPainted(false);
+        btn.setOpaque(false);
+
+        parent.add(btn);
+        return btn;
+    }
+
+    /** 更新道具按钮 & 次数显示 */
+    private void updatePowerUpUI() {
+        if (bombCountLabel != null) bombCountLabel.setText("x" + bombCount);
+        if (shuffleCountLabel != null) shuffleCountLabel.setText("x" + shuffleCount);
+        if (clearCountLabel != null) clearCountLabel.setText("x" + clearCount);
+
+        if (bombBtn != null) bombBtn.setEnabled(bombCount > 0);
+        if (shuffleBtn != null) shuffleBtn.setEnabled(shuffleCount > 0);
+        if (clearBtn != null) clearBtn.setEnabled(clearCount > 0);
+    }
+
     public void decreaseStep() {
         stepsLeft--;
         stepsLabel.setText("Steps: " + stepsLeft);
 
         if (stepsLeft <= 0) {
-
-            // 关闭当前游戏窗口（MainWindow）
             JFrame frame = (JFrame) SwingUtilities.getWindowAncestor(stepsLabel);
             if (frame != null) frame.dispose();
 
-            // 显示带背景图的结算界面
             new EndWindow("<html>Game Over!<br>No steps remaining.</html>").setVisible(true);
         }
     }
-
 
     public int getCellW() { return CELL_W; }
     public int getCellH() { return CELL_H; }
