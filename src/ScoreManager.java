@@ -1,5 +1,3 @@
-package src;
-
 import javax.swing.JLabel;
 import java.util.List;
 

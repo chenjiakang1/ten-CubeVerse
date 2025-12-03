@@ -1,5 +1,3 @@
-package src;
-
 public class ItemManager {
     private static int bombCount = 3;
     private static int colorClearCount = 2;
