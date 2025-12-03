@@ -221,7 +221,7 @@ public class MainWindow {
             buyBomb.setBounds(bombX + itemSize/2 - 10, labelY + 20, 22, 22);
 
             // 设置图片图标
-            setItemButtonIcon(buyBomb, "/Item+1button.jpg", 22);
+            setItemButtonIcon(buyBomb, "/Item+1button.png", 22);
 
             // 取消按钮默认效果（去掉背景、边框）
             buyBomb.setBorderPainted(false);
@@ -278,7 +278,7 @@ public class MainWindow {
             );
 
             // 设为图片按钮
-            setItemButtonIcon(buyColor, "/Item+1button.jpg", 22);
+            setItemButtonIcon(buyColor, "/Item+1button.png", 22);
 
             // 去除按钮背景
             buyColor.setBorderPainted(false);
@@ -337,7 +337,7 @@ public class MainWindow {
             );
 
             // 设为图片按钮
-            setItemButtonIcon(buyStep, "/Item+1button.jpg", 22);
+            setItemButtonIcon(buyStep, "/Item+1button.png", 22);
 
             // 去除按钮背景
             buyStep.setBorderPainted(false);
