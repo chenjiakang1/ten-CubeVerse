@@ -6,13 +6,14 @@ import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 
 public class SwapManager implements ActionListener {
-    private final int durationMs;     // 动画时长
-    private final MainWindow window;  // 🔥 引入 MainWindow 用于获取布局参数
+
+    private final int durationMs;
+    private final MainWindow window;  // 用于读取 currentItem / cellW / hGap 等
     private ImageButton selected = null;
-    private boolean swapping = false; // 动画期间节流
+    private boolean swapping = false;
 
     public SwapManager(MainWindow window, int durationMs) {
-        this.window = window;                   // ★ 保存引用
+        this.window = window;
         this.durationMs = Math.max(0, durationMs);
     }
 
@@ -23,52 +24,66 @@ public class SwapManager implements ActionListener {
 
         ImageButton btn = (ImageButton) e.getSource();
 
-        // 第一次点击：进入“准备”
+        // =======================================================
+        //   ★★ 1. 道具模式优先处理（比交换逻辑优先级高） ★★
+        // =======================================================
+        ItemType item = window.getCurrentItem();
+
+        if (item != ItemType.NONE) {
+            handleItemClick(btn, item);
+            return;   // 道具使用 → 不走交换逻辑
+        }
+
+
+        // =======================================================
+        //   ★★ 2. 普通交换逻辑（原版代码） ★★
+        // =======================================================
+
+        // 第一次点击：进入准备状态
         if (selected == null) {
             selected = btn;
             selected.setReady(true);
             return;
         }
 
-        // 第二次点击：尝试与已选按钮交换
         ImageButton a = selected;
         ImageButton b = btn;
 
-        // 再点自己：取消准备
+        // 再点自己：取消
         if (a == b) {
             a.setReady(false);
             selected = null;
             return;
         }
 
-        // 若任一处于动画中，忽略
+        // 如果处于动画中：禁止点击
         if (a.isAnimating() || b.isAnimating()) {
             Toolkit.getDefaultToolkit().beep();
             return;
         }
 
-        // ===== 显式检查是否相邻 =====
+        // ===== 检查是否相邻 =====
         Point rcA = new Point(a.currentRow(), a.currentCol());
         Point rcB = new Point(b.currentRow(), b.currentCol());
         int dist = Math.abs(rcA.x - rcB.x) + Math.abs(rcA.y - rcB.y);
+
         if (dist != 1) {
             a.setReady(false);
             selected = null;
             Toolkit.getDefaultToolkit().beep();
             return;
         }
-        // ==========================
 
         swapping = true;
 
-        // 动画完成后的回调：做三消判定与解锁
+        // 动画后的回调：三消 + 扣步数
         Runnable onComplete = () -> {
             Container parent = a.getParent();
             if (parent instanceof JPanel) {
                 SwingUtilities.invokeLater(() -> {
                     Match3Manager.removeMatches(
                             (JPanel) parent,
-                            window.getCellW(),   // ★ 来自 getter
+                            window.getCellW(),
                             window.getCellH(),
                             window.getOriginX(),
                             window.getOriginY(),
@@ -79,15 +94,15 @@ public class SwapManager implements ActionListener {
                 });
             }
 
-            window.decreaseStep();   // 每次交换后扣 1 步
+            window.decreaseStep();   // 交换成功 → 扣步数
 
             swapping = false;
         };
 
-        // 发起交换
+        // 发起交换动画
         a.swapWith(b, durationMs, onComplete);
 
-        // 开始交换：播放音效/清理状态
+        // 播放移动音效 + 清理选中状态
         if (a.isAnimating() || b.isAnimating()) {
             SoundManager.playMove();
             a.setReady(false);
@@ -95,5 +110,34 @@ public class SwapManager implements ActionListener {
         } else {
             swapping = false;
         }
+    }
+
+
+
+    // =======================================================
+    //   ★★ 道具点击逻辑 ★★
+    // =======================================================
+    private void handleItemClick(ImageButton btn, ItemType item) {
+
+        switch (item) {
+
+            case BOMB:
+                Match3Manager.useBomb(btn);
+                break;
+
+            case COLOR_CLEAR:
+                Match3Manager.useColorClear(btn);
+                break;
+
+            case EXTRA_STEP:
+                // 不需要点棋盘，可由 MainWindow 按钮直接处理
+                break;
+
+            default:
+                break;
+        }
+
+        // 道具用完 → 重置回正常模式
+        window.clearItem();
     }
 }

@@ -217,5 +217,86 @@ public class Match3Manager {
         return null; // 正常不会发生
     }
 
+    public static void useBomb(ImageButton center) {
+        JPanel parent = (JPanel) center.getParent();
+        if (parent == null) return;
 
+        Map<Point, ImageButton> grid = buildGrid(parent);
+        if (grid.isEmpty()) return;
+
+        int cr = center.currentRow();
+        int cc = center.currentCol();
+
+        // 删除符合范围的块（曼哈顿距离 ≤ 2）
+        for (Map.Entry<Point, ImageButton> e : grid.entrySet()) {
+            Point p = e.getKey();
+            int dist = Math.abs(p.x - cr) + Math.abs(p.y - cc);
+            if (dist <= 2) {
+                parent.remove(e.getValue());
+            }
+        }
+
+        parent.revalidate();
+        parent.repaint();
+
+        // 道具固定加十积分
+        ScoreManager.addScore(10);
+
+        // ★★★ 重新读取新的 grid ★★★
+        grid = buildGrid(parent);
+
+        // ★★★ 强制触发重力 ★★★
+        applyGravityThenChain(
+                parent,
+                grid,
+                500,
+                center.getCellW(),
+                center.getCellH(),
+                center.getOriginX(),
+                center.getOriginY(),
+                center.getCols(),
+                center.getHgap(),
+                center.getVgap()
+        );
+    }
+
+    public static void useColorClear(ImageButton target) {
+        JPanel parent = (JPanel) target.getParent();
+        if (parent == null) return;
+
+        String type = target.getType();
+        if (type == null) return;
+
+        Map<Point, ImageButton> grid = buildGrid(parent);
+
+        // 删除所有同色块
+        for (Map.Entry<Point, ImageButton> e : grid.entrySet()) {
+            if (type.equals(e.getValue().getType())) {
+                parent.remove(e.getValue());
+            }
+        }
+
+        parent.revalidate();
+        parent.repaint();
+
+        // 道具固定加十积分
+        ScoreManager.addScore(10);
+
+        // ★★★ 重新读取新的 grid ★★★
+        grid = buildGrid(parent);
+
+        // ★★★ 强制触发重力、补新块、连锁 ★★★
+        applyGravityThenChain(
+                parent,
+                grid,
+                500,
+                target.getCellW(),
+                target.getCellH(),
+                target.getOriginX(),
+                target.getOriginY(),
+                target.getCols(),
+                target.getHgap(),
+                target.getVgap()
+        );
+    }
 }

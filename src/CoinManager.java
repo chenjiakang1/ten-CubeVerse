@@ -70,4 +70,38 @@ public class CoinManager {
             e.printStackTrace();
         }
     }
+
+    // 购买炸弹：消耗2金币，成功则返回 true
+    public synchronized boolean buyBomb() {
+        if (coins >= 2) {
+            coins -= 2;
+            saveCoins();
+            ItemManager.addBomb(1);
+            return true;
+        }
+        return false;
+    }
+
+    // 购买同色消除：消耗2金币
+    public synchronized boolean buyColorClear() {
+        if (coins >= 2) {
+            coins -= 2;
+            saveCoins();
+            ItemManager.addColorClear(1);
+            return true;
+        }
+        return false;
+    }
+
+    // 购买步数+5：消耗2金币（不直接加步数！只加道具）
+    public synchronized boolean buyExtraStep() {
+        if (coins >= 2) {
+            coins -= 2;
+            saveCoins();
+            ItemManager.addExtraStep(1);
+            return true;
+        }
+        return false;
+    }
+
 }
