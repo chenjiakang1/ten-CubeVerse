@@ -65,6 +65,12 @@ public class MainMenu extends JFrame {
         content.add(startBtn);
         content.add(Box.createVerticalStrut(12));
 
+        // 游戏规则按钮
+        JButton ruleBtn = createImageButton("/button.png", "/button.png", "Game Rules");
+        ruleBtn.addActionListener(e -> openRulesWindow());
+        content.add(ruleBtn);
+        content.add(Box.createVerticalStrut(12));
+
         JButton exitBtn = createImageButton("/button.png", "/button.png", "Exit");
         exitBtn.addActionListener(e -> System.exit(0));
         content.add(exitBtn);
@@ -129,6 +135,12 @@ public class MainMenu extends JFrame {
 
         MainWindow game = new MainWindow(difficulty);
         game.setVisible(true);
+        dispose();
+    }
+
+    private void openRulesWindow() {
+        GameRulesWindow rules = new GameRulesWindow();
+        rules.setVisible(true);
         dispose();
     }
 
