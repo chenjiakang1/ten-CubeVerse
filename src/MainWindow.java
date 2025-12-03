@@ -40,6 +40,10 @@ public class MainWindow {
     private JLabel stepCountLabel;
 
 
+    public String[] currentImagePaths; // 难度种类传递
+
+
+
 
     public MainWindow(int difficulty) {
         // 新建 MainWindow = 开始一局 ⇒ 分数清零
@@ -423,6 +427,10 @@ public class MainWindow {
                 break;
         }
 
+        // 存储难度种类数量
+        this.currentImagePaths = imagePaths;
+
+
         Random random = new Random();
 
         int totalWidth  = COLS_PER_ROW * (CELL_W + HGAP) - HGAP;
@@ -456,6 +464,8 @@ public class MainWindow {
 
                 String path = imagePaths[types[r][c]];
                 ImageButton btn = createImageButton(path, x, y, ORIGIN_X, ORIGIN_Y, manager);
+
+                btn.setOwner(this);   // 每个方块绑定当前 MainWindow
 
                 bgPanel.add(btn);
             }

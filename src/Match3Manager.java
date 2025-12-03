@@ -5,6 +5,8 @@ import java.awt.event.ActionListener;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import javax.swing.SwingUtilities;
+
 /** 4 邻接三消：同类型连通块大小 >= 3 即消除；消除后重力下落 -> 补新块 -> 连锁 */
 public class Match3Manager {
     private static int comboStep = 0;   // 当前连锁层数：1,2,3...
@@ -94,7 +96,12 @@ public class Match3Manager {
         //  计算本次消除的全部奖励分数（基础分 + size bonus + combo bonus）
         int gained = ScoreManager.computeComboScore(groupSizes, comboStep);
         ScoreManager.addScore(gained);
-        SoundManager.playDestroy();
+
+        // 延迟 180ms 再播放 destroy.wav
+        javax.swing.Timer timer = new javax.swing.Timer(180, e -> SoundManager.playDestroy());
+        timer.setRepeats(false);
+        timer.start();
+
 
         // 删除方块
         for (Point p : toRemove) {
@@ -151,7 +158,7 @@ public class Match3Manager {
                 if (row != writeRow) {
                     int targetRow = writeRow;
                     running.incrementAndGet();
-                    SoundManager.playMove();
+                    // SoundManager.playMove();
 
                     b.fallToRow(targetRow, durationMs, () -> {
                         if (running.decrementAndGet() == 0) {
@@ -166,7 +173,18 @@ public class Match3Manager {
             }
         }
 
-        /* =====================  第二阶段：补充新方块  ===================== */
+        // =====================  第二阶段：补充新方块  ===================== */
+
+        // 通过任意一个 ImageButton 获取 MainWindow（因为按钮已经绑定 owner）
+        MainWindow window = null;
+        for (Component comp : parent.getComponents()) {
+            if (comp instanceof ImageButton) {
+                window = ((ImageButton) comp).getOwner();
+                break;
+            }
+        }
+        if (window == null) return;  // 理论上不会发生
+
         for (int col = minCol; col <= maxCol; col++) {
             int count = 0;
             for (Point p : grid.keySet()) if (p.y == col) count++;
@@ -178,8 +196,12 @@ public class Match3Manager {
                 int spawnRow  = -1 - i;
                 int targetRow = need - 1 - i;
 
+                // ★ 使用当前难度的图片生成新方块
                 ImageButton newB = BlockFactory.createRandomBlock(
-                        cellW, cellH, originX, originY, cols, hgap, vgap,
+                        window.currentImagePaths,   // ★★★ 核心：使用难度对应图片
+                        cellW, cellH,
+                        originX, originY,
+                        cols, hgap, vgap,
                         findSwapManager(parent)
                 );
 
@@ -200,6 +222,7 @@ public class Match3Manager {
 
         parent.revalidate();
         parent.repaint();
+
     }
 
     private static SwapManager findSwapManager(JPanel parent) {
@@ -240,10 +263,10 @@ public class Match3Manager {
         // 道具固定加十积分
         ScoreManager.addScore(10);
 
-        // ★★★ 重新读取新的 grid ★★★
+        //  重新读取新的 grid
         grid = buildGrid(parent);
 
-        // ★★★ 强制触发重力 ★★★
+        //  强制触发重力
         applyGravityThenChain(
                 parent,
                 grid,
@@ -280,10 +303,10 @@ public class Match3Manager {
         // 道具固定加十积分
         ScoreManager.addScore(10);
 
-        // ★★★ 重新读取新的 grid ★★★
+        //  重新读取新的 grid
         grid = buildGrid(parent);
 
-        // ★★★ 强制触发重力、补新块、连锁 ★★★
+        //  强制触发重力、补新块、连锁
         applyGravityThenChain(
                 parent,
                 grid,

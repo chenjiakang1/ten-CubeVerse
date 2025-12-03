@@ -22,6 +22,8 @@ public class ImageButton extends JButton {
 
     private String typeKey;  // 用于三消判定的“类型”
 
+    private MainWindow owner;
+
     public ImageButton(String resourcePath, int width, int height) {
         // ===== 保存图片类型（用路径名作为标识即可）=====
         this.typeKey = resourcePath;   // 用于 Match3 判定的类型识别
@@ -44,6 +46,14 @@ public class ImageButton extends JButton {
 
         // ===== 手动布局时的尺寸 =====
         setSize(width, height);
+    }
+
+    public void setOwner(MainWindow w) {
+        this.owner = w;
+    }
+
+    public MainWindow getOwner() {
+        return owner;
     }
 
 
