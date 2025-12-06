@@ -88,6 +88,15 @@ The project follows an object-oriented design and separates core functionalities
 
 ---
 
+## Screenshots
+
+### Main Menu
+![Menu](images/menu.png)
+
+### Gameplay
+![gameWindow](images/gameWindow.png)
+
+---
 ## Future Improvements
 - Daily challenge missions  
   Introduce daily missions with specific objectives to encourage regular player engagement.
