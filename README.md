@@ -20,36 +20,15 @@ The project follows an object-oriented design and separates core functionalities
 ---
 
 ### Game Rules
-- **Smooth Swap Animation** – Each swap action includes a polished transition with controlled timing.  
-- **Falling Animation** – Blocks drop using a timer-based smooth interpolation.  
-- **Centered Layout** – All grids automatically adjust position both **horizontally and vertically** according to difficulty.  
-- **Dynamic Highlight Effect** – The selected block glows with a yellow border to indicate readiness.
-
----
-
-### Sound Effects
-- Integrated **`SoundManager`** for immersive feedback:  
-  - Move sound on block swapping  
-  - Destroy sound on elimination  
-
----
-
-### Difficulty & Menu System
-- **Difficulty Selection** – Different grid sizes and total block counts for multiple difficulty levels:  
-  - Easy (5×5), Normal (6×6), Hard (7×7), Expert (8×8)  
-- **Main Menu** – Launch window with difficulty selection and start options.  
-- **Return Button** – Every game screen includes a “Back to Menu” button and **ESC key shortcut**.
-
----
-
-### Technical Highlights
-- **Object-Oriented Design** with modular class separation:
-  - `ImageButton.java` – Custom grid-aware button class  
-  - `SwapManager.java` – Handles click logic and swap validation  
-  - `Match3Manager.java` – Detects and removes matching blocks  
-  - `MainWindow.java` – Manages UI generation and difficulty layout  
-  - `SoundManager.java` – Controls sound effects  
-- **Smooth Timer-based Animations** using `javax.swing.Timer`
-- **Responsive Layout** independent of screen resolution
+- The game board is a grid composed of colored blocks.
+- The player may swap two adjacent blocks (up, down, left, right).
+- A swap is valid only if it creates a match of at least three identical blocks.  
+- Matched blocks are removed automatically.
+- After removal:
+  - Blocks above fall down due to gravity.
+  - New blocks are generated at the top to fill empty spaces.
+- Each elimination increases the player’s score or coins.
+- Players may use items to influence the game.
+- When the end condition is met, the game shows the result screen.
 
 ---
