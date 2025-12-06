@@ -32,3 +32,32 @@ The project follows an object-oriented design and separates core functionalities
 - When the end condition is met, the game shows the result screen.
 
 ---
+
+### Game Flow
+- Launch the game
+- Enter the main menu
+- View game rules (optional)
+- Start the game
+- Play until the game ends
+- Display end screen
+
+---
+
+### Core Features
+- Grid-based block generation
+- Adjacent block swapping
+- Match-3 detection logic
+- Automatic block elimination
+- Gravity-based falling system
+- Random block generation
+- Score and coin system
+- Item system
+- Animation effects
+- Sound effects
+- Start menu, rule window, and end window
+
+---
+
+## Project Structure
+### Entry & Windows
+
