@@ -1,5 +1,9 @@
 # ten-CubeVerse
-CubeVerse is an experimental block elimination game developed in Java. The project focuses on exploring UI animation, button swapping mechanics, and interactive game design for future expansion into a complete puzzle experience.
+This project is a grid-based Match-3 block elimination game developed in Java using Swing.
+Players can swap adjacent blocks to form matches of three or more blocks of the same type.
+The game includes scoring, items, animations, sound effects, and a complete game flow from start menu to end screen.
+
+The project follows an object-oriented design and separates core functionalities into independent manager classes.
 
 ---
 
