@@ -7,14 +7,10 @@ The project follows an object-oriented design and separates core functionalities
 
 ---
 
-## Features
+## Technology Stack
 
-### Core Gameplay
-- **Grid-Based Puzzle System** – Dynamically generates a centered grid layout based on difficulty level.  
-- **Match-3 Elimination** – Adjacent blocks of the same type automatically disappear when three or more connect.  
-- **Gravity System** – After elimination, blocks smoothly **fall down with 0.5s animation** to fill empty spaces.  
-- **Block Swapping** – Click one block to highlight it, then click an adjacent block to swap their positions.  
-  - Non-adjacent clicks automatically **cancel selection** and remove the highlight.
+### Programming Language
+- java8
 
 ---
 
