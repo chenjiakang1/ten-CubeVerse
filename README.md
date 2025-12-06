@@ -91,10 +91,10 @@ The project follows an object-oriented design and separates core functionalities
 ## Screenshots
 
 ### Main Menu
-![Menu](images/menu.png)
+![Menu](Ganeimages/menu.png)
 
 ### Gameplay
-![gameWindow](images/gameWindow.png)
+![gameWindow](Gameimages/gameWindow.png)
 
 ---
 ## Future Improvements
