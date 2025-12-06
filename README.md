@@ -91,10 +91,14 @@ The project follows an object-oriented design and separates core functionalities
 ## Screenshots
 
 ### Main Menu
-![Menu](Gameimages/menu.png)
+<p align="center">
+  <img src="iGamemages/menu.png" width="400">
+</p>
 
 ### Gameplay
-![gameWindow](Gameimages/gameWindow.png)
+<p align="center">
+  <img src="Gameimages/gameWindow.png" width="400">
+</p>
 
 ---
 ## Future Improvements
