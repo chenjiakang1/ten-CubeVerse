@@ -60,4 +60,10 @@ The project follows an object-oriented design and separates core functionalities
 
 ## Project Structure
 ### Entry & Windows
-
+- **GameLauncher** : Entry point of the game.
+- +**MainMenu** : Displays the starting menu.
+- **MainWindow / MainWindowBack** : Core game window and background management.
+- **GameRulesWindow / GameRules2Window** : Displays game instructions.
+- **EndWindow** : Displays the final result after the game ends.
+### Game Logic Modules
+- **SwapManager** : Handles adjacent block swapping and validation.
