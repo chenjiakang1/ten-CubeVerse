@@ -111,3 +111,8 @@ The project follows an object-oriented design and separates core functionalities
 - Player leaderboard  
   Implement a leaderboard system to record and compare player scores.
 
+---
+
+## Author
+- Name : 진가강,이수현,정가위,서낙범,사지곤,묘홍빈,류자오닝.
+- Course : 소프트웨어개발실무
