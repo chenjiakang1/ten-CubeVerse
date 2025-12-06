@@ -92,7 +92,7 @@ The project follows an object-oriented design and separates core functionalities
 
 ### Main Menu
 <p align="center">
-  <img src="iGamemages/menu.png" width="400">
+  <img src="Gameimages/menu.png" width="400">
 </p>
 
 ### Gameplay
