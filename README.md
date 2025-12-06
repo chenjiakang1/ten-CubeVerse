@@ -11,10 +11,15 @@ The project follows an object-oriented design and separates core functionalities
 
 ### Programming Language
 - java8
+### GUI Framework
+- Java Swing
+### Development Tools
+- IntelliJ IDEA
+- Git & GitHub
 
 ---
 
-### UI & Animation
+### Game Rules
 - **Smooth Swap Animation** – Each swap action includes a polished transition with controlled timing.  
 - **Falling Animation** – Blocks drop using a timer-based smooth interpolation.  
 - **Centered Layout** – All grids automatically adjust position both **horizontally and vertically** according to difficulty.  
