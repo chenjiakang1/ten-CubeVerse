@@ -88,6 +88,19 @@ The project follows an object-oriented design and separates core functionalities
 
 ---
 
+## Screenshots
+
+### Main Menu
+<p align="center">
+  <img src="Gameimages/menu.png" width="400">
+</p>
+
+### Gameplay
+<p align="center">
+  <img src="Gameimages/gameWindow.png" width="400">
+</p>
+
+---
 ## Future Improvements
 - Daily challenge missions  
   Introduce daily missions with specific objectives to encourage regular player engagement.
@@ -98,3 +111,8 @@ The project follows an object-oriented design and separates core functionalities
 - Player leaderboard  
   Implement a leaderboard system to record and compare player scores.
 
+---
+
+## Author
+- Name : 진가강,이수현,정가위,서낙범,사지곤,묘홍빈,류자오닝.
+- Course : 소프트웨어개발실무
