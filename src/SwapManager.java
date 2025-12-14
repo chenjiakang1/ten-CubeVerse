@@ -138,4 +138,6 @@ public class SwapManager implements ActionListener {
         // 道具用完 → 重置回正常模式
         window.clearItem();
     }
+
+
 }
